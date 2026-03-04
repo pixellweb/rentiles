@@ -1,0 +1,30 @@
+{
+    "name": "pixellweb/rentiles",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "B1nj",
+            "email": "postmaster@b1nj.fr"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "symfony/browser-kit": "^6.4",
+        "symfony/http-client": "^6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PixellWeb\\Rentiles\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+              "PixellWeb\\Rentiles\\RentilesServiceProvider"
+            ]
+        }
+    },
+    "require-dev": {
+
+    }
+}
