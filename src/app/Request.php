@@ -59,7 +59,9 @@ class Request
         try {
             $response = $client->post('accueil.php', $options);
 
-            if ($response->getStatusCode() != 200 or empty($response->getBody()->getContents())) {
+            $content = $response->getBody()->getContents();
+
+            if ($response->getStatusCode() != 200 or str_contains($content, 'formConnex')) {
                 throw new RentilesException("Impossible de se connecter (" . $response->getStatusCode() . ")");
             }
 
@@ -73,12 +75,13 @@ class Request
             throw new RentilesException("Request::login : " . $exception->getMessage());
         }
 
-        return json_decode($response->getBody());
+        return $content;
     }
 
     public function logout(): void
     {
         cache()->forget('pixellweb-rentiles');
+        $this->cookies_jar = new CookieJar();
     }
 
 
@@ -110,20 +113,21 @@ class Request
 
             $response = $client->request($method, $ressource_path, $headers);
 
-            if ($response->getStatusCode() != 200 && $response->getStatusCode() != 204) {
+            if ($response->getStatusCode() != 200) {
                 throw new RentilesException("Request::".$method." : code http error (" . $response->getStatusCode() . ")  " . $ressource_path, $response->getStatusCode());
             }
 
-            return $response->getBody()->getContents();
+            $content = $response->getBody()->getContents();
 
-        } catch (RequestException $exception) {
-
-            // Problème de connexion
-            if ($exception->getCode() == 301) {
+            if (str_contains($content, 'formConnex')) {
+                // Problème de connexion
                 $this->login();
                 return $this->request($method, $ressource_path, $parameters);
             }
 
+            return $content;
+
+        } catch (RequestException $exception) {
             throw new RentilesException("Request::".$method." : " . $exception->getMessage() . " " . $exception->getResponse()->getBody()->getContents() . ' '.print_r($parameters,true), $exception->getCode(), $exception);
         }
     }

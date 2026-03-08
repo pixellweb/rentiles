@@ -55,11 +55,19 @@ class Test extends Command
 
         $reservation = new Reservation();
 
+
+        //dd($reservation->find('A008054'));
+
         foreach ($reservation->nonTermine() as $resa) {
-            dump($reservation->find($resa));
+            try {
+                dump($reservation->find($resa));
+            } catch (\Exception $exception) {
+                dump($exception->getMessage());
+            }
+
         }
 
-        dd('stop');
+        dd('fin');
 
 
         /*$this->browser = new HttpBrowser(HttpClient::create());

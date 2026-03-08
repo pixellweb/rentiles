@@ -36,13 +36,13 @@ class RentilesServiceProvider extends ServiceProvider
     public function addCustomConfigurationValues()
     {
         // add filesystems.disks for the log viewer
-        /*config([
+        config([
             'logging.channels.'.config('rentiles.logging_channel') => [
                 'driver' => 'single',
                 'path' => storage_path('logs/'.config('rentiles.logging_channel').'.log'),
                 'level' => 'debug',
             ]
-        ]);*/
+        ]);
 
     }
 
