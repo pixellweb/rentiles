@@ -4,12 +4,12 @@ namespace PixellWeb\Rentiles\app\Ressources;
 
 
 
-use PixellWeb\Rentiles\app\Request;
+use PixellWeb\Rentiles\app\Crawler;
 
-class Ressource
+abstract class Ressource
 {
 
-    public Request $request;
+    public Crawler $crawler;
 
 
     /**
@@ -17,7 +17,7 @@ class Ressource
      */
     public function __construct()
     {
-        $this->request = new Request();
+        $this->crawler = new Crawler();
     }
 
 

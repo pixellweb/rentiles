@@ -3,14 +3,14 @@
 namespace PixellWeb\Rentiles\app\Console\Commands;
 
 
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Container\EntryNotFoundException;
-use Ipsum\Admin\app\Classes\LogViewer;
-use PixellWeb\Rentiles\app\Request;
+
+use PixellWeb\Rentiles\app\Data\ReservationData;
+use PixellWeb\Rentiles\app\Ressources\Categorie;
 use PixellWeb\Rentiles\app\Ressources\Reservation;
-use Symfony\Component\BrowserKit\HttpBrowser;
-use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\HttpClient\HttpClient;
+
 
 class Test extends Command
 {
@@ -51,9 +51,30 @@ class Test extends Command
     public function handle(): void
     {
 
+        $categorie = new Categorie();
+        dd($categorie->all());
 
 
         $reservation = new Reservation();
+
+        $reservation_data = ReservationData::validateAndCreate([
+            'reference' => 'ggg',
+            'categorie' => 'ggg',
+            'statut' => 'Payé',
+            'date_depart' => Carbon::now()->addDays(10),
+            'date_retour' => Carbon::now()->addDays(11),
+            'infosup' => 'ggg',
+            'nom' => 'Doe',
+            'prenom' => 'joh,',
+            'telephone' => '0600000000',
+            'email' => 'john@example.com',
+            'lieu_depart' => 'll',
+            'lieu_retour' => 'll',
+            'montant' => 0,
+            'date' =>  Carbon::now(),
+        ]);
+
+        $reservation->create($reservation_data);
 
 
         //dd($reservation->find('A008054'));

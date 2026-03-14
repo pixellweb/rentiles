@@ -10,7 +10,7 @@ use GuzzleHttp\Exception\RequestException;
 use Psr\SimpleCache\InvalidArgumentException;
 
 
-class Request
+class Crawler
 {
     protected ?string $base_uri = null;
 
@@ -23,7 +23,7 @@ class Request
      */
     public function __construct()
     {
-        $this->base_uri = 'https://'.config('rentiles.domain').'/'.config('rentiles.path').'/';
+        $this->base_uri = config('rentiles.domain').'/'.config('rentiles.path').'/';
 
         if (cache()->get('pixellweb-rentiles')) {
             $this->cookies_jar = cache()->get('pixellweb-rentiles');
@@ -57,7 +57,7 @@ class Request
         ];
 
         try {
-            $response = $client->post('accueil.php', $options);
+            $response = $client->post(config('rentiles.admin_path').'/accueil.php', $options);
 
             $content = $response->getBody()->getContents();
 
@@ -149,12 +149,12 @@ class Request
      * @param string $ressource_path
      * @param array $params
      * @param null $query
-     * @return array|int|null
+     * @return string
      * @throws GuzzleException
      * @throws InvalidArgumentException
      * @throws RentilesException
      */
-    public function post(string $ressource_path, array $params = [], $query = null): array|int|null
+    public function post(string $ressource_path, array $params = [], $query = null): string
     {
         return $this->request('POST', $ressource_path, $params, $query);
     }

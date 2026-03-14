@@ -4,6 +4,7 @@ namespace PixellWeb\Rentiles;
 
 use App\Http\Middleware\TrimStrings;
 use Illuminate\Support\ServiceProvider;
+use PixellWeb\Rentiles\app\Console\Commands\Import;
 use PixellWeb\Rentiles\app\Console\Commands\Test;
 
 
@@ -12,6 +13,7 @@ class RentilesServiceProvider extends ServiceProvider
 
     protected $commands = [
         Test::class,
+        Import::class,
     ];
 
 

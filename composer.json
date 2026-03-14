@@ -9,8 +9,10 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "symfony/browser-kit": "^6.4",
-        "symfony/http-client": "^6.4"
+        "symfony/dom-crawler": "^6.4",
+        "symfony/http-client": "^6.4",
+        "spatie/laravel-data": "^3.12.0"
+
     },
     "autoload": {
         "psr-4": {
