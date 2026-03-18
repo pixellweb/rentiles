@@ -66,25 +66,25 @@ class Import extends Command
             if (count($reservations_reference)) {
 
                 $references_exist = IpsumReservation::select('reference')->whereIn('reference', $reservations_reference)->get();
-                $reservations_a_creer = $reservations_reference->diff($references_exist);
+                $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
                 if ($reservations_a_creer->count()) {
 
                     $categories = Categorie::select(['id', 'custom_fields'])
                         ->get()
                         ->mapWithKeys(function ($item, $key) {
-                        return [$key => $item->custom_fields->rentiles_code];
+                        return [$item->custom_fields->rentiles_code => $item->id];
                     });
 
                     $lieux = Lieu::select(['id', 'custom_fields'])
                         ->get()
                         ->mapWithKeys(function ($item, $key) {
-                            return [$key => $item->custom_fields->rentiles_code];
+                            return [ $item->custom_fields->rentiles_code => $item->id];
                         });
 
                     $prestations = Prestation::select(['id', 'custom_fields'])
                         ->get()
                         ->mapWithKeys(function ($item, $key) {
-                            return [$key => $item->custom_fields->rentiles_code];
+                            return [$item->custom_fields->rentiles_code => $item->id];
                         });
 
                     $reservation_mapper = new ReservationMapper($categories->toArray(), $lieux->toArray(), $prestations->toArray());
@@ -93,6 +93,7 @@ class Import extends Command
                         try {
                             $rentiles_reservations = $reservation_data->find($reference);
                             $reservation_mapper->create($rentiles_reservations);
+                            // TODO paiement
                         } catch (\Exception $exception) {
                             dump($exception->getMessage());
                         }

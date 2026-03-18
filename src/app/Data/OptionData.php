@@ -12,12 +12,12 @@ use Spatie\LaravelData\Data;
 use Ipsum\Reservation\app\Models\Reservation as IpsumReservation;
 
 
-class CategorieData extends Data
+class OptionData extends Data
 {
     public function __construct(
-        public ?int $id,
         public string $reference,
-        public string $titre,
+        public int $quantite,
+        public float $total,
 
     ) {
     }

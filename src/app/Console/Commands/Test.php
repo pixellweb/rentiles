@@ -9,6 +9,7 @@ use Illuminate\Container\EntryNotFoundException;
 
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\Ressources\Categorie;
+use PixellWeb\Rentiles\app\Ressources\Lieu;
 use PixellWeb\Rentiles\app\Ressources\Reservation;
 
 
@@ -51,11 +52,14 @@ class Test extends Command
     public function handle(): void
     {
 
+        /*$lieu = new Lieu();
+        dd($lieu->all());
+
         $categorie = new Categorie();
         dd($categorie->all());
 
 
-        $reservation = new Reservation();
+
 
         $reservation_data = ReservationData::validateAndCreate([
             'reference' => 'ggg',
@@ -74,14 +78,15 @@ class Test extends Command
             'date' =>  Carbon::now(),
         ]);
 
-        $reservation->create($reservation_data);
+        $reservation->create($reservation_data);*/
 
 
         //dd($reservation->find('A008054'));
-
+        $reservation = new Reservation();
+        dump($reservation->nonTermine());
         foreach ($reservation->nonTermine() as $resa) {
             try {
-                dump($reservation->find($resa));
+                $reservation->find($resa);
             } catch (\Exception $exception) {
                 dump($exception->getMessage());
             }

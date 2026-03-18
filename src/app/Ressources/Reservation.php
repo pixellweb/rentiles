@@ -5,6 +5,7 @@ namespace PixellWeb\Rentiles\app\Ressources;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use GuzzleHttp\Exception\GuzzleException;
+use PixellWeb\Rentiles\app\Data\CategorieData;
 use PixellWeb\Rentiles\app\RentilesException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler as DomCrawler;
@@ -27,10 +28,10 @@ class Reservation extends Ressource
      */
     public function nonTermine(CarbonInterface $debut = null, CarbonInterface $fin = null) : \Illuminate\Support\Collection
     {
-        $result = Cache::remember('planningbo_ajax', 60*60, function () {
-            $debut = $debut ?? Carbon::now();
-            $fin = $fin ?? $debut->clone()->addMonths(12);
+        $debut = $debut ?? Carbon::now();
+        $fin = $fin ?? $debut->clone()->addMonths(12);
 
+        $result = Cache::remember('planningbo_ajax_'.$debut->format('d-m-Y').'_'.$fin->format('d-m-Y'), 60*60, function () use ($debut, $fin) {
             return $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
                 'action' => 'gen_new_tab',
                 'from' => $debut->format('d-m-Y'),
@@ -70,8 +71,9 @@ class Reservation extends Ressource
         ];
 
         $dom_crawler = new DomCrawler($result);
-        $data['categorie'] = $dom_crawler->filter('input[name="editcmd_vehicule[ref]"]')->first()->attr('value');
-
+        $categorie['reference'] = $dom_crawler->filter('input[name="editcmd_vehicule[ref]"]')->first()->attr('value');
+        $categorie['titre'] = $dom_crawler->filter('input[name="editcmd_vehicule[titre]"]')->first()->attr('value');
+        $data['categorie'] = $categorie;
 
         $data['statut'] = $dom_crawler->filter('#statutch option[selected]')->first()->text();
 
@@ -110,18 +112,18 @@ class Reservation extends Ressource
         $data['caution'] = $dom_crawler->filter('#display_editcmd_caution')->first()->text();
 
 
-        $data['lieu_depart'] = $dom_crawler->filter('#bloc_photos .bloc_transfert')->eq(1)->filter('ul:not(.editcmd)')->first()->filter('li')->eq(1)->filter('span')->first()->text();
-        $data['lieu_retour'] = $dom_crawler->filter('.bloc_transfert')->eq(1)->filter('ul:not(.editcmd)')->eq(1)->filter('li')->eq(1)->filter('span')->first()->text();
+        //$data['lieu_depart']['nom'] = $dom_crawler->filter('#bloc_photos .bloc_transfert')->eq(1)->filter('ul:not(.editcmd)')->first()->filter('li')->eq(1)->filter('span')->first()->text();
+        //$data['lieu_retour']['nom'] = $dom_crawler->filter('.bloc_transfert')->eq(1)->filter('ul:not(.editcmd)')->eq(1)->filter('li')->eq(1)->filter('span')->first()->text();
+        $data['lieu_depart']['id'] = $dom_crawler->filter('#editcmd_lieud option[selected]')->first()->attr('value');
+        $data['lieu_depart']['nom'] = $dom_crawler->filter('#editcmd_lieud option[selected]')->first()->text();
+        $data['lieu_retour']['id'] = $dom_crawler->filter('#editcmd_lieuf option[selected]')->first()->attr('value');
+        $data['lieu_retour']['nom'] = $dom_crawler->filter('#editcmd_lieuf option[selected]')->first()->text();
         $data['date_depart'] = $dom_crawler->filter('#lead span')->eq(1)->text().' '.$dom_crawler->filter('#display_editcmd_heured')->first()->text();
         $data['date_retour'] = $dom_crawler->filter('#leaf span')->eq(1)->text().' '.$dom_crawler->filter('#display_editcmd_heuref')->first()->text();
         $data['infosup'] = $dom_crawler->filter('#display_editcmd_infosup')->first()->text();
 
+        $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
 
-        /*$validator = Validator::make($data, $this->validation());
-        if ($validator->fails()) {
-            dump($data, $validator->errors()->all());
-            throw new RentilesException(print_r($validator->errors()->all(), true)); // TODO format
-        }*/
         return ReservationData::validateAndCreate($data);
     }
 
@@ -152,7 +154,7 @@ class Reservation extends Ressource
             'delaidevis' => 4,
             'type_livraison' => 2,
             'fraisport' => null,
-            'forfait_perso' => null, // Ne pas mettre ?
+            'forfait_perso' => $reservation->montant,
             'acompte' => null,
             'statut_acompte' => 2, // TODO
             'livraison_infosup' => $reservation->infosup,

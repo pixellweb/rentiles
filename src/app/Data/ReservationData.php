@@ -5,20 +5,26 @@ namespace PixellWeb\Rentiles\app\Data;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use PixellWeb\Rentiles\app\Enum\Statut;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Spatie\LaravelData\Data;
 use Ipsum\Reservation\app\Models\Reservation as IpsumReservation;
+use Spatie\LaravelData\DataCollection;
+use Spatie\LaravelData\Optional;
 
 
 class ReservationData extends Data
 {
+    public ?float $montant_paye;
+
     public function __construct(
         public string $reference,
-        public string $categorie,
+        public CategorieData $categorie,
         public Statut $statut,
-        public ?array $options,
+        #[DataCollectionOf(OptionData::class)]
+        public DataCollection $options,
         public int $montant,
 
         public ?int $acompte,
@@ -37,14 +43,16 @@ class ReservationData extends Data
 
         public ?string $permis_numero,
         public ?string $permis_lieu,
-        public ?string $permis_date,
-        public ?string $date_naissance,
+        #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y')]
+        public ?Carbon $permis_date,
+        #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y')]
+        public ?Carbon $date_naissance,
         public ?string $lieu_naissance,
         public ?string $franchise,
         public ?string $caution,
 
-        public string $lieu_depart,
-        public string $lieu_retour,
+        public LieuData $lieu_depart,
+        public LieuData $lieu_retour,
 
         #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y H:i')]
         public Carbon $date_depart,
@@ -53,6 +61,7 @@ class ReservationData extends Data
         public ?string $infosup,
 
     ) {
+        $this->montant_paye = round_prix($this->montant * 30 / 100);
     }
 }
 
