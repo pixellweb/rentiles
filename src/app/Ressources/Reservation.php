@@ -104,10 +104,10 @@ class Reservation extends Ressource
         $data['email'] = $dom_crawler->filter('#display_editcmd_email')->first()->text();
 
         $data['permis_numero'] = $dom_crawler->filter('#display_editcmd_permis')->first()->text();
-        $data['permis_lieu'] = $dom_crawler->filter('#editcmd_lieu_permis')->first()->text();
+        $data['permis_lieu'] = $dom_crawler->filter('#display_editcmd_lieu_permis')->first()->text();
         $data['permis_date'] = $dom_crawler->filter('#display_editcmd_date_permis')->first()->text();
         $data['date_naissance'] = $dom_crawler->filter('#display_editcmd_date_naissance')->first()->text();
-        $data['lieu_naissance'] = $dom_crawler->filter('#editcmd_lieu_naissance')->first()->text();
+        $data['lieu_naissance'] = $dom_crawler->filter('#display_editcmd_lieu_naissance')->first()->text();
         $data['franchise'] = $dom_crawler->filter('#display_editcmd_franchise')->first()->text();
         $data['caution'] = $dom_crawler->filter('#display_editcmd_caution')->first()->text();
 
@@ -121,6 +121,9 @@ class Reservation extends Ressource
         $data['date_depart'] = $dom_crawler->filter('#lead span')->eq(1)->text().' '.$dom_crawler->filter('#display_editcmd_heured')->first()->text();
         $data['date_retour'] = $dom_crawler->filter('#leaf span')->eq(1)->text().' '.$dom_crawler->filter('#display_editcmd_heuref')->first()->text();
         $data['infosup'] = $dom_crawler->filter('#display_editcmd_infosup')->first()->text();
+
+
+        // TODO conducteur additionnel : resa R842911
 
         $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
 

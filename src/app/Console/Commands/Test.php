@@ -10,6 +10,7 @@ use Illuminate\Container\EntryNotFoundException;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\Ressources\Categorie;
 use PixellWeb\Rentiles\app\Ressources\Lieu;
+use PixellWeb\Rentiles\app\Ressources\Pays;
 use PixellWeb\Rentiles\app\Ressources\Reservation;
 
 
@@ -52,6 +53,17 @@ class Test extends Command
     public function handle(): void
     {
 
+        $pays_rentiles = new Pays();
+        $pays_ipsum = \Ipsum\Reservation\app\Models\Reservation\Pays::selectRaw('id, LOWER(`nom`) AS nom')->get();
+
+        foreach ($pays_rentiles->all() as $pays) {
+            if ($pays_ipsum->where('nom', strtolower($pays['nom']))->count()) {
+                $this->info("'".$pays['nom']."' => ".$pays_ipsum->where('nom', strtolower($pays['nom']))->first()->id.",");
+            }
+        }
+
+        dd('stop');
+
         /*$lieu = new Lieu();
         dd($lieu->all());
 
@@ -81,8 +93,8 @@ class Test extends Command
         $reservation->create($reservation_data);*/
 
 
-        //dd($reservation->find('A008054'));
         $reservation = new Reservation();
+        dd($reservation->find('R842911'));
         dump($reservation->nonTermine());
         foreach ($reservation->nonTermine() as $resa) {
             try {

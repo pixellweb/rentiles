@@ -69,27 +69,11 @@ class Import extends Command
                 $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
                 if ($reservations_a_creer->count()) {
 
-                    $categories = Categorie::select(['id', 'custom_fields'])
-                        ->get()
-                        ->mapWithKeys(function ($item, $key) {
-                        return [$item->custom_fields->rentiles_code => $item->id];
-                    });
 
-                    $lieux = Lieu::select(['id', 'custom_fields'])
-                        ->get()
-                        ->mapWithKeys(function ($item, $key) {
-                            return [ $item->custom_fields->rentiles_code => $item->id];
-                        });
-
-                    $prestations = Prestation::select(['id', 'custom_fields'])
-                        ->get()
-                        ->mapWithKeys(function ($item, $key) {
-                            return [$item->custom_fields->rentiles_code => $item->id];
-                        });
-
-                    $reservation_mapper = new ReservationMapper($categories->toArray(), $lieux->toArray(), $prestations->toArray());
+                    $reservation_mapper = new ReservationMapper();
 
                     foreach ($reservations_a_creer as $reference) {
+                        $this->info('Création réservation '.$reference);
                         try {
                             $rentiles_reservations = $reservation_data->find($reference);
                             $reservation_mapper->create($rentiles_reservations);

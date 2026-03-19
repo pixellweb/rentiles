@@ -2,6 +2,10 @@
 
 namespace PixellWeb\Rentiles\app\Mapper;
 
+use Illuminate\Support\Collection;
+use Ipsum\Reservation\app\Models\Categorie\Categorie;
+use Ipsum\Reservation\app\Models\Lieu\Lieu;
+use Ipsum\Reservation\app\Models\Prestation\Prestation;
 use Ipsum\Reservation\app\Models\Reservation\Condition;
 use Ipsum\Reservation\app\Models\Reservation\Etat;
 use Ipsum\Reservation\app\Models\Reservation\Reservation As IpsumReservation;
@@ -10,22 +14,44 @@ use PixellWeb\Rentiles\app\RentilesException;
 
 class ReservationMapper
 {
-    public function __construct(
-        public array $categories_mapping,
-        public array $lieux_mapping,
-        public array $prestations_mapping,
-    ) {
-        // TODO créer une class Mapping avec les requetes categorie, lieu et prestation ?
+    public Collection $categories_mapping;
+    public Collection $lieux_mapping;
+    public Collection $prestations_mapping;
+
+    public function __construct()
+    {
+        $this->categories_mapping = Categorie::select(['id', 'custom_fields'])
+            ->get()
+            ->mapWithKeys(function ($item, $key) {
+                return [$item->custom_fields->rentiles_code => $item->id];
+            });
+
+        $this->lieux_mapping = Lieu::select(['id', 'custom_fields'])
+            ->get()
+            ->mapWithKeys(function ($item, $key) {
+                return [ $item->custom_fields->rentiles_code => $item->id];
+            });
+
+        $this->prestations_mapping = Prestation::select(['id', 'custom_fields'])
+            ->get()
+            ->mapWithKeys(function ($item, $key) {
+                return [$item->custom_fields->rentiles_code => $item->id];
+            });
     }
 
-    public function create(ReservationData $reservation_data): IpsumReservation|bool
+    public function create(ReservationData $reservation_data): IpsumReservation
     {
-        if (!isset($this->categories_mapping[$reservation_data->categorie->reference])) {
-            return false;
+        $observation = $reservation_data->infosup;
+
+
+        if (!$this->hasCategorieIpsum($reservation_data->categorie->reference)) {
+            throw new RentilesException('Erreur de mapping de catégorie : '.$reservation_data->categorie->reference);
         }
-        if (!isset($this->lieux_mapping[$reservation_data->lieu_depart->nom])
-            or !isset($this->lieux_mapping[$reservation_data->lieu_retour->nom])) {
-            throw new RentilesException('erreur de mapping de lieu'); // plutôt mettre un commentaire ?
+        if (!$this->hasLieuIpsum($reservation_data->lieu_depart->nom)) {
+            $observation .= "\nLieu de départ : ". $reservation_data->lieu_depart->nom;
+        }
+        if (!$this->hasLieuIpsum($reservation_data->lieu_retour->nom)) {
+            $observation .= "\nLieu de retour : ". $reservation_data->lieu_retour->nom;
         }
         // TODO option prestation
 
@@ -41,23 +67,20 @@ class ReservationMapper
             'adresse' => $reservation_data->adresse,
             'cp' => $reservation_data->code_postal,
             'ville' => $reservation_data->ville,
-            'pays_nom' => $reservation_data->pays,
+            'pays_id' => $this->getPaysIpsum($reservation_data->pays),
             'naissance_at' => $reservation_data->date_naissance,
             'naissance_lieu' => $reservation_data->lieu_naissance,
             'permis_numero' => $reservation_data->permis_numero,
             'permis_at' => $reservation_data->permis_date,
             'permis_delivre' => $reservation_data->permis_lieu,
-            'observation' => $reservation_data->infosup,
-            'categorie_id' => $this->categories_mapping[$reservation_data->categorie->reference],
-            'categorie_nom' => $reservation_data->categorie->titre,
+            'observation' => $observation,
+            'categorie_id' => $this->getCategorieIpsum($reservation_data->categorie->reference),
             'caution' => $reservation_data->caution,
             'franchise' => $reservation_data->franchise,
             'debut_at' => $reservation_data->date_depart,
             'fin_at' => $reservation_data->date_retour,
-            'debut_lieu_id' => $this->lieux_mapping[$reservation_data->lieu_depart->nom],
-            'fin_lieu_id' => $this->lieux_mapping[$reservation_data->lieu_retour->nom],
-            'debut_lieu_nom' => $reservation_data->lieu_depart->nom,
-            'fin_lieu_nom' => $reservation_data->lieu_retour->nom,
+            'debut_lieu_id' => $this->getLieuIpsum($reservation_data->lieu_depart->nom),
+            'fin_lieu_id' => $this->getLieuIpsum($reservation_data->lieu_retour->nom),
             'prestations ' => null, // TODO
             'total' => $reservation_data->montant,
             'montant_paye' => $reservation_data->montant_paye, // TODO supprimer il faut faire le paiement
@@ -71,6 +94,302 @@ class ReservationMapper
     {
         // TODO
         return ReservationData::from($ipsum_reservation->toArray());
+    }
+
+
+    public function hasCategorieIpsum(string $reference): bool
+    {
+        return isset($this->categories_mapping[$reference]);
+    }
+
+    public function getCategorieIpsum(string $reference): ?int
+    {
+        return $this->categories_mapping[$reference] ?? null;
+    }
+
+    public function hasLieuIpsum(string $nom): bool
+    {
+        return isset($this->lieux_mapping[$nom]);
+    }
+
+    public function getLieuIpsum(string $nom): ?int
+    {
+        return $this->lieux_mapping[$nom] ?? $this->lieux_mapping->first();
+    }
+
+    public function getPaysIpsum(string $nom): ?int
+    {
+        $maping =  [
+            // Pays avec une correspondance de texte
+            'Afghanistan' => 1,
+            'Afrique du Sud' => 201,
+            'Albanie' => 2,
+            'Algérie' => 4,
+            'Allemagne' => 84,
+            'Andorre' => 6,
+            'Angola' => 7,
+            'Antigua-et-Barbuda' => 8,
+            'Arabie saoudite' => 192,
+            'Argentine' => 10,
+            'Arménie' => 16,
+            'Australie' => 11,
+            'Autriche' => 12,
+            'Azerbaïdjan' => 9,
+            'Bahamas' => 13,
+            'Bahreïn' => 14,
+            'Bangladesh' => 15,
+            'Barbade' => 17,
+            'Belgique' => 18,
+            'Belize' => 26,
+            'Bénin' => 59,
+            'Bhoutan' => 20,
+            'Bolivie' => 21,
+            'Bosnie-Herzégovine' => 22,
+            'Botswana' => 23,
+            'Brésil' => 25,
+            'Bulgarie' => 31,
+            'Burundi' => 33,
+            'Cambodge' => 35,
+            'Cameroun' => 36,
+            'Cap-Vert' => 38,
+            'Chili' => 43,
+            'Chine' => 44,
+            'Chypre' => 57,
+            'Colombie' => 48,
+            'Comores' => 49,
+            'Costa Rica' => 54,
+            'Côte d\'Ivoire' => 110,
+            'Croatie' => 55,
+            'Cuba' => 56,
+            'Danemark' => 60,
+            'Djibouti' => 79,
+            'Dominique' => 61,
+            'Espagne' => 203,
+            'Estonie' => 68,
+            'Fidji' => 72,
+            'Finlande' => 73,
+            'France métropolitaine' => 75,
+            'Gabon' => 80,
+            'Gambie' => 82,
+            'Géorgie' => 81,
+            'Ghana' => 85,
+            'Grèce' => 88,
+            'Grenade' => 90,
+            'Guatemala' => 93,
+            'Guinée' => 94,
+            'Guinée équatoriale' => 65,
+            'Guyana' => 95,
+            'Haïti' => 96,
+            'Honduras' => 99,
+            'Hongrie' => 101,
+            'Inde' => 103,
+            'Indonésie' => 104,
+            'Iraq' => 106,
+            'Irlande' => 107,
+            'Islande' => 102,
+            'Israël' => 108,
+            'Italie' => 109,
+            'Jamaïque' => 111,
+            'Japon' => 112,
+            'Jordanie' => 114,
+            'Kazakhstan' => 113,
+            'Kenya' => 115,
+            'Kirghizistan' => 119,
+            'Kiribati' => 87,
+            'Koweït' => 118,
+            'Lesotho' => 122,
+            'Lettonie' => 123,
+            'Liban' => 121,
+            'Liechtenstein' => 126,
+            'Lituanie' => 127,
+            'Luxembourg' => 128,
+            'Madagascar' => 130,
+            'Malaisie' => 132,
+            'Malawi' => 131,
+            'Maldives' => 133,
+            'Mali' => 134,
+            'Malte' => 135,
+            'Maroc' => 144,
+            'Maurice' => 138,
+            'Mauritanie' => 137,
+            'Mexique' => 139,
+            'Monaco' => 140,
+            'Mongolie' => 141,
+            'Mozambique' => 145,
+            'Namibie' => 147,
+            'Nauru' => 148,
+            'Népal' => 149,
+            'Nicaragua' => 156,
+            'Niger' => 157,
+            'Norvège' => 161,
+            'Nouvelle-Zélande' => 155,
+            'Oman' => 146,
+            'Ouganda' => 224,
+            'Ouzbékistan' => 235,
+            'Pakistan' => 167,
+            'Panama' => 168,
+            'Paraguay' => 170,
+            'Pays-Bas' => 150,
+            'Pérou' => 171,
+            'Philippines' => 172,
+            'Pologne' => 174,
+            'Portugal' => 175,
+            'Qatar' => 179,
+            'République centrafricaine' => 40,
+            'République dominicaine' => 62,
+            'République tchèque' => 58,
+            'Roumanie' => 181,
+            'Royaume-Uni' => 228,
+            'Rwanda' => 183,
+            'Sainte-Lucie' => 187,
+            'Saint-Marin' => 190,
+            'Saint-Vincent-et-les Grenadines' => 189,
+            'Sao Tomé-et-Principe' => 191,
+            'Sénégal' => 193,
+            'Seychelles' => 194,
+            'Sierra Leone' => 195,
+            'Singapour' => 196,
+            'Slovaquie' => 197,
+            'Slovénie' => 199,
+            'Somalie' => 200,
+            'Soudan' => 205,
+            'Sri Lanka' => 41,
+            'Suède' => 209,
+            'Suisse' => 210,
+            'Suriname' => 206,
+            'Swaziland' => 208,
+            'Tadjikistan' => 212,
+            'Tchad' => 42,
+            'Thaïlande' => 213,
+            'Togo' => 214,
+            'Tonga' => 216,
+            'Trinité-et-Tobago' => 217,
+            'Tunisie' => 219,
+            'Turkménistan' => 221,
+            'Turquie' => 220,
+            'Tuvalu' => 223,
+            'Ukraine' => 225,
+            'Uruguay' => 234,
+            'Vanuatu' => 154,
+            'Venezuela' => 236,
+            'Yémen' => 239,
+            'Zambie' => 241,
+            'Zimbabwe' => 202,
+            'Guadeloupe' => 91,
+            'Guyane Française' => 76,
+            'Martinique' => 136,
+            'Mayotte' => 50,
+            'Nouvelle-Calédonie' => 153,
+            'Polynésie française' => 77,
+
+            // Correspondance manuelle
+            /*'Belau' => todo,
+            'Biélorussie' => todo,
+            'Birmanie' => todo,
+            'Brunei' => todo,
+            'Burkina' => todo,*/
+            'Congo' => 51,
+            /*'Cook' => todo,
+            'Corée du Nord' => todo,
+            'Corée du Sud' => todo,
+            'Égypte' => todo,
+            'Émirats arabes unis' => todo,
+            'Équateur' => todo,
+            'Érythrée' => todo,
+            'Éthiopie' => todo,
+            'Guinée-Bissao' => todo,*/
+            'Iran' => 105,
+            /*'Laos' => todo,
+            'Liberia' => todo,
+            'Libye' => todo,
+            'Macédoine' => todo,
+            'Marshall' => todo,
+            'Micronésie' => todo,
+            'Moldavie' => todo,
+            'Nigeria' => todo,
+            'Niue' => todo,
+            'Papouasie' => todo,*/
+            'Russie' => 105,
+            /*'Saint-Christophe-et-Niévès' => todo,
+            'Salomon' => todo,
+            'Salvador' => todo,
+            'Samoa occidentales' => todo,
+            'Syrie' => todo,
+            'Tanzanie' => todo,
+            'Vatican' => todo,
+            'Viêt Nam' => todo,
+            'Yougoslavie' => todo,
+            'Zaïre' => todo,*/
+            'USA - Alaska' => 231,
+            'USA - Arizona' => 231,
+            'USA - Arkansas' => 231,
+            'USA - California' => 231,
+            'USA - Colorado' => 231,
+            'USA - Connecticut' => 231,
+            'USA - Delaware' => 231,
+            'USA - District Of Columbia' => 231,
+            'USA - Florida' => 231,
+            'USA - Georgia' => 231,
+            'USA - Hawaii' => 231,
+            'USA - Idaho' => 231,
+            'USA - Illinois' => 231,
+            'USA - Indiana' => 231,
+            'USA - Iowa' => 231,
+            'USA - Kansas' => 231,
+            'USA - Kentucky' => 231,
+            'USA - Louisiana' => 231,
+            'USA - Maine' => 231,
+            'USA - Maryland' => 231,
+            'USA - Massachusetts' => 231,
+            'USA - Michigan' => 231,
+            'USA - Minnesota' => 231,
+            'USA - Mississippi' => 231,
+            'USA - Missouri' => 231,
+            'USA - Montana' => 231,
+            'USA - Nebraska' => 231,
+            'USA - Nevada' => 231,
+            'USA - New Hampshire' => 231,
+            'USA - New Jersey' => 231,
+            'USA - New Mexico' => 231,
+            'USA - New York' => 231,
+            'USA - North Carolina' => 231,
+            'USA - North Dakota' => 231,
+            'USA - Ohio' => 231,
+            'USA - Oklahoma' => 231,
+            'USA - Oregon' => 231,
+            'USA - Pennsylvania' => 231,
+            'USA - Rhode Island' => 231,
+            'USA - South Carolina' => 231,
+            'USA - South Dakota' => 231,
+            'USA - Tennessee' => 231,
+            'USA - Texas' => 231,
+            'USA - Utah' => 231,
+            'USA - Vermont' => 231,
+            'USA - Virginia' => 231,
+            'USA - Washington' => 231,
+            'USA - West Virginia' => 231,
+            'USA - Wisconsin' => 231,
+            'USA - Wyoming' => 231,
+            //'Colombie-Britannique' => todo,
+            'Canada - Alberta' => 37,
+            'Canada - Saskatchewan' => 37,
+            'Canada - Manitoba' => 37,
+            'Canada - Ontario' => 37,
+            'Canada - Québec' => 37,
+            'Canada - Nouveau-Brunswick' => 37,
+            'Canada - Nouvelle-Écosse' => 37,
+            'Canada - Île-du-Prince-Édouard' => 37,
+            'Canada - Terre-Neuve-et-Labrador' => 37,
+            'Canada - Yukon' => 37,
+            'Canada - Territoires-du-Nord-Ouest' => 37,
+            'Canada - Nunavut' => 37,
+            'Réunion(La)' => 180,
+            'St Pierre et Miquelon' => 37,
+            'Wallis-et-Futuna' => 237,
+            'USA - Alabama' => 231,
+        ];
+
+        return $maping[$nom] ?? null;
     }
 }
 
