@@ -124,6 +124,7 @@ class Reservation extends Ressource
 
 
         // TODO conducteur additionnel : resa R842911
+        // TODO Adresse de résidence sur place : resa R861315
 
         $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
 

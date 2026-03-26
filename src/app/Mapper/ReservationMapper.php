@@ -9,6 +9,7 @@ use Ipsum\Reservation\app\Models\Prestation\Prestation;
 use Ipsum\Reservation\app\Models\Reservation\Condition;
 use Ipsum\Reservation\app\Models\Reservation\Etat;
 use Ipsum\Reservation\app\Models\Reservation\Reservation As IpsumReservation;
+use PixellWeb\Rentiles\app\Data\OptionData;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\RentilesException;
 
@@ -32,10 +33,10 @@ class ReservationMapper
                 return [ $item->custom_fields->rentiles_code => $item->id];
             });
 
-        $this->prestations_mapping = Prestation::select(['id', 'custom_fields'])
+        $this->prestations_mapping = Prestation::with('tarification')
             ->get()
             ->mapWithKeys(function ($item, $key) {
-                return [$item->custom_fields->rentiles_code => $item->id];
+                return [$item->custom_fields->rentiles_code => $item];
             });
     }
 
@@ -53,7 +54,26 @@ class ReservationMapper
         if (!$this->hasLieuIpsum($reservation_data->lieu_retour->nom)) {
             $observation .= "\nLieu de retour : ". $reservation_data->lieu_retour->nom;
         }
-        // TODO option prestation
+
+        $prestations = [];
+        foreach ($reservation_data->options as $option) {
+            /* @var OptionData $option */
+            if (!$this->hasPrestationIpsum($option->reference)) {
+                $observation .= "\nOption : ". $option->quantite .' x '.$option->reference. ' ('.$option->total.'€)';
+            } else {
+                $prestation = $this->getPrestationIpsum($option->reference);
+                $prestations[] = [
+                    'id' => $prestation->id,
+                    'quantite' => $option->quantite,
+                    'nom' => $prestation->nom,
+                    'tarif' => $option->total,
+                    'tarification' => $prestation->tarification,
+                    'tarif_libelle' => prix($option->total).' €',
+                    'choix' => null,
+                ];
+            }
+        }
+
 
         $data = [
             'reference' => $reservation_data->reference,
@@ -81,7 +101,7 @@ class ReservationMapper
             'fin_at' => $reservation_data->date_retour,
             'debut_lieu_id' => $this->getLieuIpsum($reservation_data->lieu_depart->nom),
             'fin_lieu_id' => $this->getLieuIpsum($reservation_data->lieu_retour->nom),
-            'prestations ' => null, // TODO
+            'prestations' => $prestations,
             'total' => $reservation_data->montant,
             'montant_paye' => $reservation_data->montant_paye, // TODO supprimer il faut faire le paiement
             'saved' => 1,
@@ -115,6 +135,16 @@ class ReservationMapper
     public function getLieuIpsum(string $nom): ?int
     {
         return $this->lieux_mapping[$nom] ?? $this->lieux_mapping->first();
+    }
+
+    public function hasPrestationIpsum(string $nom): bool
+    {
+        return isset($this->prestations_mapping[$nom]);
+    }
+
+    public function getPrestationIpsum(string $reference): ?Prestation
+    {
+        return $this->prestations_mapping[$reference] ?? null;
     }
 
     public function getPaysIpsum(string $nom): ?int
