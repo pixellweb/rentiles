@@ -8,7 +8,9 @@ use Ipsum\Reservation\app\Models\Lieu\Lieu;
 use Ipsum\Reservation\app\Models\Prestation\Prestation;
 use Ipsum\Reservation\app\Models\Reservation\Condition;
 use Ipsum\Reservation\app\Models\Reservation\Etat;
+use Ipsum\Reservation\app\Models\Reservation\Moyen;
 use Ipsum\Reservation\app\Models\Reservation\Reservation As IpsumReservation;
+use Ipsum\Reservation\app\Models\Reservation\Type;
 use PixellWeb\Rentiles\app\Data\OptionData;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\RentilesException;
@@ -44,9 +46,16 @@ class ReservationMapper
     {
         $observation = $reservation_data->infosup;
 
+        if ($reservation_data->conducteur_additionnel->count()) {
+            $observation .= "\nConducteur additionnel : ".$reservation_data->conducteur_additionnel->implode("\n");
+        }
+
+        if ($reservation_data->adresse_sur_place) {
+            $observation .= "\nAdresse de résidence sur place : ".$reservation_data->adresse_sur_place;
+        }
 
         if (!$this->hasCategorieIpsum($reservation_data->categorie->reference)) {
-            throw new RentilesException('Erreur de mapping de catégorie : '.$reservation_data->categorie->reference);
+            throw new RentilesException('Erreur de mapping de la catégorie : '.$reservation_data->categorie->reference);
         }
         if (!$this->hasLieuIpsum($reservation_data->lieu_depart->nom)) {
             $observation .= "\nLieu de départ : ". $reservation_data->lieu_depart->nom;
@@ -103,11 +112,21 @@ class ReservationMapper
             'fin_lieu_id' => $this->getLieuIpsum($reservation_data->lieu_retour->nom),
             'prestations' => $prestations,
             'total' => $reservation_data->montant,
-            'montant_paye' => $reservation_data->montant_paye, // TODO supprimer il faut faire le paiement
             'saved' => 1,
             'created_at' => $reservation_data->date,
         ];
-        return IpsumReservation::create($data);
+
+        $reservation_ipsum = IpsumReservation::create($data);
+
+        $reservation_ipsum->paiements()->create([
+            'paiement_moyen_id' => Moyen::CB_ID,
+            'paiement_type_id' => $reservation_data->montant_paye == $reservation_data->montant ? Type::PAIEMENT_ID : Type::ACOMPTE_ID,
+            'montant' => $reservation_data->montant_paye,
+            'note' => 'Rentîles',
+            'created_at' => $reservation_data->date,
+        ]);
+
+        return $reservation_ipsum;
     }
 
     public function get(IpsumReservation $ipsum_reservation): ReservationData

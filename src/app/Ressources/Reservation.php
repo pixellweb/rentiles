@@ -5,11 +5,10 @@ namespace PixellWeb\Rentiles\app\Ressources;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use GuzzleHttp\Exception\GuzzleException;
-use PixellWeb\Rentiles\app\Data\CategorieData;
+use Illuminate\Validation\ValidationException;
 use PixellWeb\Rentiles\app\RentilesException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler as DomCrawler;
-use Illuminate\Support\Facades\Validator;
 use PixellWeb\Rentiles\app\Data\ReservationData as ReservationData;
 use Illuminate\Support\Facades\Cache;
 
@@ -123,12 +122,25 @@ class Reservation extends Ressource
         $data['infosup'] = $dom_crawler->filter('#display_editcmd_infosup')->first()->text();
 
 
-        // TODO conducteur additionnel : resa R842911
-        // TODO Adresse de résidence sur place : resa R861315
+        $conducteur_additionnel = $dom_crawler->filter('#cont_ajout_conducteur .designation[style*="#ffd8d8"]')->each(function (DomCrawler $element) {
+            return $element->text();
+        });
+        $data['conducteur_additionnel'] = collect($conducteur_additionnel);
+
+        $data['adresse_sur_place'] = $dom_crawler->filter('#editcmd_adresse_residence')->first()->text();
+
+        // Commentaire/observation c'est quoi ? a priori le commentaire du loueur ?
+        $data['commentaire'] = $dom_crawler->filter('#editcmd_commentaires')->first()->text();
 
         $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
 
-        return ReservationData::validateAndCreate($data);
+        try {
+            ReservationData::validate($data);
+        } catch (ValidationException $exception) {
+            throw new RentilesException($exception->getMessage());
+        }
+
+        return ReservationData::from($data);
     }
 
 
@@ -177,37 +189,5 @@ class Reservation extends Ressource
 
         dd($result);
     }
-
-
-
-    /*protected function validation(): array
-    {
-        return [
-            'categorie' => 'required',
-            'montant' => 'required|numeric',
-            'date' => 'required|date_format:d/m/y H:i:s',
-
-            'options' => 'array',
-            'options.*.reference' => 'required',
-            'options.*.quantite' => 'required|numeric',
-            'options.*.total' => 'required|numeric',
-
-            'prenom' => 'required',
-            'nom' => 'required',
-            'email' => 'required|email',
-
-            'permis_date' => 'nullable|date_format:d/m/Y',
-            'date_naissance' => 'nullable|date_format:d/m/Y',
-
-            'franchise' => 'nullable|numeric',
-            'caution' => 'nullable|numeric',
-
-            'lieu_depart' => 'required',
-            'lieu_retour' => 'required',
-            'date_depart' => 'required|date_format:d/m/Y H:i',
-            'date_retour' => 'required|date_format:d/m/Y H:i',
-        ];
-    }*/
-
 
 }

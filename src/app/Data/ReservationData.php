@@ -3,20 +3,20 @@
 namespace PixellWeb\Rentiles\app\Data;
 
 use Carbon\Carbon;
-use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use PixellWeb\Rentiles\app\Enum\Statut;
+use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
-use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Spatie\LaravelData\Data;
-use Ipsum\Reservation\app\Models\Reservation as IpsumReservation;
 use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Optional;
 
 
 class ReservationData extends Data
 {
+    #[Computed]
     public ?float $montant_paye;
 
     public function __construct(
@@ -59,6 +59,8 @@ class ReservationData extends Data
         #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y H:i')]
         public Carbon $date_retour,
         public ?string $infosup,
+        public ?Collection $conducteur_additionnel,
+        public ?string $adresse_sur_place,
 
     ) {
         $this->montant_paye = round_prix($this->montant * 30 / 100);
@@ -162,47 +164,4 @@ editcmd_infosup_retour=
 id_produit=45
 produit_img=http://s318850998.onlinehome.fr/srr-promolease/client/cache/produit/329_225_0_0_0_1_FFF_picanto_101.jpg&url_speedyrent=http://s318850998.onlinehome.fr/srr-promolease
 
- public function __construct(
-    public string $reference,
-    public string $categorie,
-    public Statut $statut,
-    public ?array $options,
-    public int $montant,
-
-    #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/y H:i:s')]
-    #[MapInputName('date')]
-    public Carbon $created_at,
-
-    public string $prenom,
-    public string $nom,
-    public ?string $adresse,
-    public ?string $code_postal,
-    public ?string $ville,
-    public ?string $pays,
-    public ?string $telephone,
-    public ?string $email,
-
-    public ?string $permis_numero,
-    public ?string $permis_lieu,
-    public ?string $permis_date,
-    public ?string $date_naissance,
-    public ?string $lieu_naissance,
-    public ?string $franchise,
-    public ?string $caution,
-
-    public string $lieu_depart,
-    public string $lieu_retour,
-
-    #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y H:i')]
-    public Carbon $date_depart,
-    public ?string $debut_at,
-    #[WithCast(DateTimeInterfaceCast::class, format: 'd/m/Y H:i')]
-    public Carbon $date_retour,
-    public ?string $fin_at,
-    public ?string $infosup,
-
-) {
-    $this->debut_at = $date_depart->format('Y-m-d\TH:i');
-    $this->fin_at = $date_retour->format('Y-m-d\TH:i');
-}
  */

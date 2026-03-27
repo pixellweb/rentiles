@@ -3,18 +3,12 @@
 namespace PixellWeb\Rentiles\app\Console\Commands;
 
 
-use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Console\Command;
 use Illuminate\Container\EntryNotFoundException;
 
-use Ipsum\Reservation\app\Location\Categorie;
-use Ipsum\Reservation\app\Models\Lieu\Lieu;
-use Ipsum\Reservation\app\Models\Prestation\Prestation;
 use Ipsum\Reservation\app\Models\Reservation\Reservation as IpsumReservation;
 use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
-use PixellWeb\Rentiles\app\RentilesException;
 use PixellWeb\Rentiles\app\Ressources\Reservation as ReservationRessource;
-use Psr\SimpleCache\InvalidArgumentException;
 
 
 class Import extends Command
@@ -61,6 +55,7 @@ class Import extends Command
         $reservation_data = new ReservationRessource();
 
         try {
+            $this->info('Récupération des réservations non terminées');
             $reservations_reference = $reservation_data->nonTermine();
 
             if (count($reservations_reference)) {
@@ -68,7 +63,7 @@ class Import extends Command
                 $references_exist = IpsumReservation::select('reference')->whereIn('reference', $reservations_reference)->get();
                 $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
                 if ($reservations_a_creer->count()) {
-
+                    $this->info($reservations_a_creer->count().' réservations à créer');
 
                     $reservation_mapper = new ReservationMapper();
 
@@ -77,20 +72,14 @@ class Import extends Command
                         try {
                             $rentiles_reservations = $reservation_data->find($reference);
                             $reservation_mapper->create($rentiles_reservations);
-                            // TODO paiement
                         } catch (\Exception $exception) {
-                            dump($exception->getMessage());
+                            $this->error($exception->getMessage());
                         }
-                        dd('stop');
                     }
                 }
 
             }
-        } catch (GuzzleException $e) {
-
-        } catch (RentilesException $e) {
-
-        } catch (InvalidArgumentException $e) {
+        } catch (\Exception $exception) {
 
         }
 
