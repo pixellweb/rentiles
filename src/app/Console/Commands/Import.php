@@ -6,8 +6,10 @@ namespace PixellWeb\Rentiles\app\Console\Commands;
 use Carbon\Carbon;
 use Illuminate\Container\EntryNotFoundException;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Notification;
 use Ipsum\Reservation\app\Models\Reservation\Reservation as IpsumReservation;
 use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
+use PixellWeb\Rentiles\app\Notifications\RentilesImport;
 use PixellWeb\Rentiles\app\Ressources\Reservation as ReservationRessource;
 use Symfony\Component\Console\Command\Command as CommandAlias;
 
@@ -48,10 +50,11 @@ class Import extends Command
      */
     public function handle(): mixed
     {
-
-        $reservation_data = new ReservationRessource($this->option('cache'));
+        $errors = collect();
 
         try {
+            $reservation_data = new ReservationRessource($this->option('cache'));
+
             $this->info('Récupération des réservations non terminées');
 
             if ($this->argument('action') == 'all') {
@@ -73,7 +76,7 @@ class Import extends Command
                 $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
             } else {
                 $this->error('Argument action inconnu');
-                return CommandAlias::FAILURE;
+                return CommandAlias::INVALID;
             }
 
             $this->info($reservations_a_creer->count().' réservations à créer ou modifier');
@@ -86,17 +89,23 @@ class Import extends Command
                     $rentiles_reservations = $reservation_data->find($reference);
                     $reservation_mapper->updateOrCreate($rentiles_reservations);
                 } catch (\Exception $exception) {
+                    $errors->push($exception->getMessage());
                     $this->error($exception->getMessage());
                 }
             }
 
 
         } catch (\Exception $exception) {
+            $errors->push($exception->getMessage());
+            $this->error($exception->getMessage());
+        }
 
+        if ($errors->isNotEmpty()) {
+            Notification::route('mail', 'taylor@example.com')->notify(new RentilesImport($errors));
+            return CommandAlias::FAILURE;
         }
 
         return CommandAlias::SUCCESS;
-
     }
 
 
