@@ -15,9 +15,9 @@ abstract class Ressource
     /**
      * Ressource constructor.
      */
-    public function __construct()
+    public function __construct(?int $cache_time = null)
     {
-        $this->crawler = new Crawler();
+        $this->crawler = new Crawler($cache_time);
     }
 
 

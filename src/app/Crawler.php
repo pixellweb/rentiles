@@ -8,6 +8,7 @@ use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\SimpleCache\InvalidArgumentException;
+use Illuminate\Support\Facades\Cache;
 
 
 class Crawler
@@ -18,10 +19,12 @@ class Crawler
     protected CookieJar $cookies_jar;
 
 
+    protected ?int $cache_time = null;
+
     /**
      * Api constructor.
      */
-    public function __construct()
+    public function __construct(?int $cache_time = null)
     {
         $this->base_uri = config('rentiles.domain').'/'.config('rentiles.path').'/';
 
@@ -30,6 +33,8 @@ class Crawler
         } else {
             $this->login();
         }
+
+        $this->cache_time = $cache_time;
     }
 
 
@@ -142,6 +147,15 @@ class Crawler
      */
     public function get(string $ressource_path, array $params = []): string
     {
+        if ($this->cache_time) {
+            unset($params['nocache']);
+            $cache_name = $ressource_path.'_'.implode('_', $params);
+
+            return Cache::remember($cache_name, 60*60, function () use ($ressource_path, $params) {
+                return $this->request('GET', $ressource_path, $params);
+            });
+        }
+
         return $this->request('GET', $ressource_path, $params);
     }
 

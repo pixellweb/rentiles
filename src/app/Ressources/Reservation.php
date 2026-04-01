@@ -10,7 +10,6 @@ use PixellWeb\Rentiles\app\RentilesException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler as DomCrawler;
 use PixellWeb\Rentiles\app\Data\ReservationData as ReservationData;
-use Illuminate\Support\Facades\Cache;
 
 class Reservation extends Ressource
 {
@@ -30,19 +29,16 @@ class Reservation extends Ressource
         $debut = $debut ?? Carbon::now();
         $fin = $fin ?? $debut->clone()->addMonths(12);
 
-        $result = Cache::remember('planningbo_ajax_'.$debut->format('d-m-Y').'_'.$fin->format('d-m-Y'), 60*60, function () use ($debut, $fin) {
-            return $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
-                'action' => 'gen_new_tab',
-                'from' => $debut->format('d-m-Y'),
-                'to' => $fin->format('d-m-Y'),
-                'delai_reprisestock_display' => 3,
-                'id_resa' => 0,
-                'id_exception' =>0,
-                'display_vehicule' => 0,
-                'nocache' => time()
-            ]);
-        });
-
+        $result = $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
+            'action' => 'gen_new_tab',
+            'from' => $debut->format('d-m-Y'),
+            'to' => $fin->format('d-m-Y'),
+            'delai_reprisestock_display' => 3,
+            'id_resa' => 0,
+            'id_exception' =>0,
+            'display_vehicule' => 0,
+            'nocache' => time()
+        ]);
 
         // Récupération des réfèrences. Pas de possibilité de selectionner via css
         preg_match_all('/<p [^>]*background-color:#FF0F02;[^>]*>.*?planning=1&ref=([^"]*)">/s', $result, $output);
@@ -58,12 +54,10 @@ class Reservation extends Ressource
      */
     public function find(string $reference): ReservationData
     {
-        $result = Cache::remember('commande_details_'.$reference, 60*60, function () use ($reference) {
-            return $this->crawler->get(config('rentiles.admin_path').'/commande_details.php', [
-                'ref' => $reference,
-                'planning' => 1 // Charge moins de code html inutile
-            ]);
-        });
+        $result = $this->crawler->get(config('rentiles.admin_path').'/commande_details.php', [
+            'ref' => $reference,
+            'planning' => 1 // Charge moins de code html inutile
+        ]);;
 
         $data = [
             'reference' => $reference,

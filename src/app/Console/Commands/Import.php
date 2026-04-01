@@ -3,12 +3,13 @@
 namespace PixellWeb\Rentiles\app\Console\Commands;
 
 
-use Illuminate\Console\Command;
+use Carbon\Carbon;
 use Illuminate\Container\EntryNotFoundException;
-
+use Illuminate\Console\Command;
 use Ipsum\Reservation\app\Models\Reservation\Reservation as IpsumReservation;
 use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
 use PixellWeb\Rentiles\app\Ressources\Reservation as ReservationRessource;
+use Symfony\Component\Console\Command\Command as CommandAlias;
 
 
 class Import extends Command
@@ -18,7 +19,7 @@ class Import extends Command
      *
      * @var string
      */
-    protected $signature = 'rentiles:import';
+    protected $signature = 'rentiles:import {action=all} {--cache=}';
 
     /**
      * The console command description.
@@ -42,48 +43,59 @@ class Import extends Command
     /**
      * Execute the console command.
      *
-     * @return void
+     * @return mixed
      * @throws EntryNotFoundException
      */
-    public function handle(): void
+    public function handle(): mixed
     {
 
-
-
-        // Création des nouvelles réservations
-        // A lancer régulièrement
-        $reservation_data = new ReservationRessource();
+        $reservation_data = new ReservationRessource($this->option('cache'));
 
         try {
             $this->info('Récupération des réservations non terminées');
-            $reservations_reference = $reservation_data->nonTermine();
 
-            if (count($reservations_reference)) {
+            if ($this->argument('action') == 'all') {
+                $reservations_reference = $reservation_data->nonTermine(Carbon::now()->addDay());
+
+                if (!count($reservations_reference)) {
+                    return CommandAlias::SUCCESS;
+                }
+
+                $reservations_a_creer = $reservations_reference;
+            } elseif ($this->argument('action') == 'new') {
+                $reservations_reference = $reservation_data->nonTermine();
+
+                if (!count($reservations_reference)) {
+                    return CommandAlias::SUCCESS;
+                }
 
                 $references_exist = IpsumReservation::select('reference')->whereIn('reference', $reservations_reference)->get();
                 $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
-                if ($reservations_a_creer->count()) {
-                    $this->info($reservations_a_creer->count().' réservations à créer');
-
-                    $reservation_mapper = new ReservationMapper();
-
-                    foreach ($reservations_a_creer as $reference) {
-                        $this->info('Création réservation '.$reference);
-                        try {
-                            $rentiles_reservations = $reservation_data->find($reference);
-                            $reservation_mapper->create($rentiles_reservations);
-                        } catch (\Exception $exception) {
-                            $this->error($exception->getMessage());
-                        }
-                    }
-                }
-
+            } else {
+                $this->error('Argument action inconnu');
+                return CommandAlias::FAILURE;
             }
+
+            $this->info($reservations_a_creer->count().' réservations à créer ou modifier');
+
+            $reservation_mapper = new ReservationMapper();
+
+            foreach ($reservations_a_creer as $reference) {
+                $this->info('Création réservation '.$reference);
+                try {
+                    $rentiles_reservations = $reservation_data->find($reference);
+                    $reservation_mapper->updateOrCreate($rentiles_reservations);
+                } catch (\Exception $exception) {
+                    $this->error($exception->getMessage());
+                }
+            }
+
+
         } catch (\Exception $exception) {
 
         }
 
-
+        return CommandAlias::SUCCESS;
 
     }
 

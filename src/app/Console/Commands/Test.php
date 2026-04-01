@@ -53,7 +53,7 @@ class Test extends Command
     public function handle(): void
     {
 
-        $pays_rentiles = new Pays();
+        $pays_rentiles = new Pays(3600);
         $pays_ipsum = \Ipsum\Reservation\app\Models\Reservation\Pays::selectRaw('id, LOWER(`nom`) AS nom')->get();
 
         foreach ($pays_rentiles->all() as $pays) {
@@ -64,10 +64,10 @@ class Test extends Command
 
         dd('stop');
 
-        /*$lieu = new Lieu();
+        /*$lieu = new Lieu(3600);
         dd($lieu->all());
 
-        $categorie = new Categorie();
+        $categorie = new Categorie(3600);
         dd($categorie->all());
 
 
@@ -93,7 +93,7 @@ class Test extends Command
         $reservation->create($reservation_data);*/
 
 
-        $reservation = new Reservation();
+        $reservation = new Reservation(3600);
         dd($reservation->find('R842911'));
         dump($reservation->nonTermine());
         foreach ($reservation->nonTermine() as $resa) {

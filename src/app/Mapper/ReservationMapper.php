@@ -42,7 +42,7 @@ class ReservationMapper
             });
     }
 
-    public function create(ReservationData $reservation_data): IpsumReservation
+    public function updateOrCreate(ReservationData $reservation_data): IpsumReservation
     {
         $observation = $reservation_data->infosup;
 
@@ -116,15 +116,19 @@ class ReservationMapper
             'created_at' => $reservation_data->date,
         ];
 
-        $reservation_ipsum = IpsumReservation::create($data);
+        $reservation_ipsum = IpsumReservation::updateOrCreate(['reference' => $reservation_data->reference], $data);
 
-        $reservation_ipsum->paiements()->create([
-            'paiement_moyen_id' => Moyen::CB_ID,
-            'paiement_type_id' => $reservation_data->montant_paye == $reservation_data->montant ? Type::PAIEMENT_ID : Type::ACOMPTE_ID,
-            'montant' => $reservation_data->montant_paye,
-            'note' => 'Rentîles',
-            'created_at' => $reservation_data->date,
-        ]);
+        // Pas de update des paiements. On ne récupère que le paiement de l'acompte
+        if (!$reservation_ipsum->paiements->count()) {
+            $reservation_ipsum->paiements()->create([
+                'paiement_moyen_id' => Moyen::CB_ID,
+                'paiement_type_id' => $reservation_data->montant_paye == $reservation_data->montant ? Type::PAIEMENT_ID : Type::ACOMPTE_ID,
+                'montant' => $reservation_data->montant_paye,
+                'note' => 'Rentîles',
+                'created_at' => $reservation_data->date,
+            ]);
+        }
+
 
         return $reservation_ipsum;
     }
