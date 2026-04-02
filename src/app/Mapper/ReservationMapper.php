@@ -11,6 +11,7 @@ use Ipsum\Reservation\app\Models\Reservation\Etat;
 use Ipsum\Reservation\app\Models\Reservation\Moyen;
 use Ipsum\Reservation\app\Models\Reservation\Reservation As IpsumReservation;
 use Ipsum\Reservation\app\Models\Reservation\Type;
+use PixellWeb\Rentiles\app\Data\CreateReservationData;
 use PixellWeb\Rentiles\app\Data\OptionData;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\RentilesException;
@@ -133,10 +134,28 @@ class ReservationMapper
         return $reservation_ipsum;
     }
 
-    public function get(IpsumReservation $ipsum_reservation): ReservationData
+    public function get(IpsumReservation $ipsum_reservation): CreateReservationData
     {
-        // TODO
-        return ReservationData::from($ipsum_reservation->toArray());
+        if (!$this->hasCategorieRentiles($ipsum_reservation->categorie_id)) {
+            throw new RentilesException('Erreur de mapping de la catégorie : '.$ipsum_reservation->categorie_id);
+        }
+
+
+        $data = [
+            'categorie' => $ipsum_reservation->categorie_id,
+            'date_depart' => $ipsum_reservation->debut_at,
+            'date_retour' => $ipsum_reservation->fin_at,
+            'infosup' => $ipsum_reservation->observation,
+            'nom' => $ipsum_reservation->nom,
+            'prenom' => $ipsum_reservation->prenom,
+            'telephone' => $ipsum_reservation->telephone,
+            'email' => $ipsum_reservation->email,
+            'lieu_depart' => 11, //$ipsum_reservation->lieuDebut, //'ll',
+            'lieu_retour' => 11, //$ipsum_reservation->lieuFin, //'ll',
+            'montant' => $ipsum_reservation->total,
+            'date' =>  $ipsum_reservation->created_at,
+        ];
+        return CreateReservationData::validateAndCreate($data);
     }
 
 
@@ -148,6 +167,16 @@ class ReservationMapper
     public function getCategorieIpsum(string $reference): ?int
     {
         return $this->categories_mapping[$reference] ?? null;
+    }
+
+    public function hasCategorieRentiles(int $id): bool
+    {
+        return $this->categories_mapping->contains($id);
+    }
+
+    public function getCategorieRentiles(int $id): ?string
+    {
+        return array_search($id, $this->categories_mapping->toArray()) ?? null;
     }
 
     public function hasLieuIpsum(string $nom): bool

@@ -22,7 +22,8 @@
     "extra": {
         "laravel": {
             "providers": [
-              "PixellWeb\\Rentiles\\RentilesServiceProvider"
+              "PixellWeb\\Rentiles\\RentilesServiceProvider",
+              "PixellWeb\\Rentiles\\EventServiceProvider"
             ]
         }
     },

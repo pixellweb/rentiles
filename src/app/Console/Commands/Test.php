@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Container\EntryNotFoundException;
 
 use PixellWeb\Rentiles\app\Data\ReservationData;
+use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
 use PixellWeb\Rentiles\app\Ressources\Categorie;
 use PixellWeb\Rentiles\app\Ressources\Lieu;
 use PixellWeb\Rentiles\app\Ressources\Pays;
@@ -52,6 +53,27 @@ class Test extends Command
      */
     public function handle(): void
     {
+        /*$reservation_data = ReservationData::validateAndCreate([
+            'reference' => 'ggg',
+            'categorie' => 'ggg',
+            'statut' => 'Payé',
+            'date_depart' => Carbon::now()->addDays(10),
+            'date_retour' => Carbon::now()->addDays(11),
+            'infosup' => 'ggg',
+            'nom' => 'Doe',
+            'prenom' => 'joh,',
+            'telephone' => '0600000000',
+            'email' => 'john@example.com',
+            'lieu_depart' => 'll',
+            'lieu_retour' => 'll',
+            'montant' => 0,
+            'date' =>  Carbon::now(),
+        ]);*/
+        $reservation_mapper = new ReservationMapper();
+        $reservation = new Reservation();
+        $reservation->create($reservation_mapper->get(\Ipsum\Reservation\app\Models\Reservation\Reservation::first()));
+
+        dd('fin');
 
         $pays_rentiles = new Pays(3600);
         $pays_ipsum = \Ipsum\Reservation\app\Models\Reservation\Pays::selectRaw('id, LOWER(`nom`) AS nom')->get();
@@ -68,29 +90,7 @@ class Test extends Command
         dd($lieu->all());
 
         $categorie = new Categorie(3600);
-        dd($categorie->all());
-
-
-
-
-        $reservation_data = ReservationData::validateAndCreate([
-            'reference' => 'ggg',
-            'categorie' => 'ggg',
-            'statut' => 'Payé',
-            'date_depart' => Carbon::now()->addDays(10),
-            'date_retour' => Carbon::now()->addDays(11),
-            'infosup' => 'ggg',
-            'nom' => 'Doe',
-            'prenom' => 'joh,',
-            'telephone' => '0600000000',
-            'email' => 'john@example.com',
-            'lieu_depart' => 'll',
-            'lieu_retour' => 'll',
-            'montant' => 0,
-            'date' =>  Carbon::now(),
-        ]);
-
-        $reservation->create($reservation_data);*/
+        dd($categorie->all());*/
 
 
         $reservation = new Reservation(3600);

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Validation\ValidationException;
+use PixellWeb\Rentiles\app\Data\CreateReservationData;
 use PixellWeb\Rentiles\app\RentilesException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler as DomCrawler;
@@ -138,7 +139,7 @@ class Reservation extends Ressource
     }
 
 
-    public function create(ReservationData $reservation)
+    public function create(CreateReservationData $reservation)
     {
         $result = $this->crawler->get('module-resa/module_resa.inc.php', [
             'ajax' => 1,
