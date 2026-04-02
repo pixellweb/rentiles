@@ -12,4 +12,6 @@ return [
 
 
     'source_id' => env('RENTILES_SOURCE_ID',1),
+
+    'email_alerte' => env('RENTILES_EMAIL_ALETRE',null),
 ];

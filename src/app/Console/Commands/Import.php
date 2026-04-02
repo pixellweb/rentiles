@@ -100,8 +100,8 @@ class Import extends Command
             $this->error($exception->getMessage());
         }
 
-        if ($errors->isNotEmpty()) {
-            Notification::route('mail', 'taylor@example.com')->notify(new RentilesImport($errors));
+        if ($errors->isNotEmpty() and config('rentiles.email_alerte')) {
+            Notification::route('mail', config('rentiles.email_alerte'))->notify(new RentilesImport($errors));
             return CommandAlias::FAILURE;
         }
 
