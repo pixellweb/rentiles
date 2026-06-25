@@ -28,7 +28,7 @@ class Reservation extends Ressource
     public function nonTermine(CarbonInterface $debut = null, CarbonInterface $fin = null) : \Illuminate\Support\Collection
     {
         $debut = $debut ?? Carbon::now();
-        $fin = $fin ?? $debut->clone()->addMonths(12);
+        $fin = $fin ?? $debut->clone()->addMonths(1);
 
         $result = $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
             'action' => 'gen_new_tab',
@@ -58,7 +58,7 @@ class Reservation extends Ressource
         $result = $this->crawler->get(config('rentiles.admin_path').'/commande_details.php', [
             'ref' => $reference,
             'planning' => 1 // Charge moins de code html inutile
-        ]);;
+        ]);
 
         $data = [
             'reference' => $reference,

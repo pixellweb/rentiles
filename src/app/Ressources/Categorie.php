@@ -19,7 +19,7 @@ class Categorie extends Ressource
             $data = [];
             $data['id'] = str_replace('id : ', '', $element->filter(".vignette img")->first()->attr('title'));
             $data['reference'] = $element->filter(".texte_noedit")->first()->text();
-            $data['nom'] = $element->filter(".texte_edit")->first()->text();
+            $data['titre'] = $element->filter(".texte_edit")->first()->text();
 
             return $data;
         });
