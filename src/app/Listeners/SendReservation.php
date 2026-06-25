@@ -5,6 +5,8 @@ namespace PixellWeb\Rentiles\app\Listeners;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Ipsum\Reservation\app\Events\ReservationConfirmedEvent;
+use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
+use PixellWeb\Rentiles\app\Ressources\Reservation;
 
 class SendReservation
 {
@@ -21,6 +23,9 @@ class SendReservation
 
     public function handle(ReservationConfirmedEvent $event)
     {
-        $event->reservation;
+        $reservation_mapper = new ReservationMapper();
+        $reservation = new Reservation();
+        $reservation->create($reservation_mapper->get($event->reservation));
+
     }
 }

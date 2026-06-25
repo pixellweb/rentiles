@@ -55,12 +55,13 @@ class Import extends Command
         try {
             $reservation_data = new ReservationRessource($this->option('cache'));
 
-            $this->info('Récupération des réservations non terminées');
+            $this->info('Récupération des réservations "non terminées"');
 
             if ($this->argument('action') == 'all') {
                 $reservations_reference = $reservation_data->nonTermine(Carbon::now()->addDay());
 
                 if (!count($reservations_reference)) {
+                    $this->info('Aucune réservation');
                     return CommandAlias::SUCCESS;
                 }
 
@@ -69,6 +70,7 @@ class Import extends Command
                 $reservations_reference = $reservation_data->nonTermine();
 
                 if (!count($reservations_reference)) {
+                    $this->info('Aucune nouvelle réservation');
                     return CommandAlias::SUCCESS;
                 }
 
