@@ -21,7 +21,7 @@ class Import extends Command
      *
      * @var string
      */
-    protected $signature = 'rentiles:import {action=all} {--cache=}';
+    protected $signature = 'rentiles:import {action=all} {--cache=}  {--date_debut_synchronisation=}';
 
     /**
      * The console command description.
@@ -88,8 +88,16 @@ class Import extends Command
             foreach ($reservations_a_creer as $reference) {
                 $this->info('Création réservation '.$reference);
                 try {
-                    $rentiles_reservations = $reservation_data->find($reference);
-                    $reservation_mapper->updateOrCreate($rentiles_reservations);
+                    $rentiles_reservation = $reservation_data->find($reference);
+
+                    if ($this->option('date_debut_synchronisation')) {
+                        $date_debut_synchronisation = Carbon::createFromFormat('Y-m-d', $this->option('date_debut_synchronisation'));
+                        if ($date_debut_synchronisation->greaterThan($rentiles_reservation->date)) {
+                            $this->info('Réservation faite avant le début de la synchronisation');
+                            continue;
+                        }
+                    }
+                    $reservation_mapper->updateOrCreate($rentiles_reservation);
                 } catch (\Exception $exception) {
                     $errors->push($exception->getMessage());
                     $this->error($exception->getMessage());
