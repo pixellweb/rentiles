@@ -28,7 +28,7 @@ class Reservation extends Ressource
     public function nonTermine(CarbonInterface $debut = null, CarbonInterface $fin = null) : \Illuminate\Support\Collection
     {
         $debut = $debut ?? Carbon::now();
-        $fin = $fin ?? $debut->clone()->addMonths(1);
+        $fin = $fin ?? $debut->clone()->addMonths(6);
 
         $result = $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
             'action' => 'gen_new_tab',
@@ -124,7 +124,7 @@ class Reservation extends Ressource
 
         $data['adresse_sur_place'] = $dom_crawler->filter('#editcmd_adresse_residence')->first()->text();
 
-        // Commentaire/observation c'est quoi ? a priori le commentaire du loueur ?
+        // Commentaire/observation, c'est quoi ? a priori le commentaire du loueur ?
         $data['commentaire'] = $dom_crawler->filter('#editcmd_commentaires')->first()->text();
 
         $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
@@ -141,7 +141,7 @@ class Reservation extends Ressource
 
     public function create(CreateReservationData $reservation)
     {
-        $result = $this->crawler->get('module-resa/module_resa.inc.php', [
+        $this->crawler->get('module-resa/module_resa.inc.php', [
             'ajax' => 1,
             'action' => 'formresasubmit',
             'admin_tpl' => 'commandecreer',

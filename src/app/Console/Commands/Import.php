@@ -57,7 +57,7 @@ class Import extends Command
 
             $this->info('Récupération des réservations "non terminées"');
 
-            if ($this->argument('action') == 'all') {
+            if ($this->argument('action') === 'all') {
                 $reservations_reference = $reservation_data->nonTermine(Carbon::now()->addDay());
 
                 if (!count($reservations_reference)) {
@@ -66,7 +66,7 @@ class Import extends Command
                 }
 
                 $reservations_a_creer = $reservations_reference;
-            } elseif ($this->argument('action') == 'new') {
+            } elseif ($this->argument('action') === 'new') {
                 $reservations_reference = $reservation_data->nonTermine();
 
                 if (!count($reservations_reference)) {
@@ -93,11 +93,12 @@ class Import extends Command
                     if ($this->option('date_debut_synchronisation')) {
                         $date_debut_synchronisation = Carbon::createFromFormat('Y-m-d', $this->option('date_debut_synchronisation'));
                         if ($date_debut_synchronisation->greaterThan($rentiles_reservation->date)) {
-                            $this->info('Réservation faite avant le début de la synchronisation');
+                            $this->warn('Réservation effectuée avant le début de la synchronisation');
                             continue;
                         }
                     }
                     $reservation_mapper->updateOrCreate($rentiles_reservation);
+                    $this->info('Ok');
                 } catch (\Exception $exception) {
                     $errors->push($exception->getMessage());
                     $this->error($exception->getMessage());

@@ -151,7 +151,7 @@ class Crawler
             unset($params['nocache']);
             $cache_name = $ressource_path.'_'.implode('_', $params);
 
-            return Cache::remember($cache_name, 60*60, function () use ($ressource_path, $params) {
+            return Cache::remember($cache_name, $this->cache_time, function () use ($ressource_path, $params) {
                 return $this->request('GET', $ressource_path, $params);
             });
         }

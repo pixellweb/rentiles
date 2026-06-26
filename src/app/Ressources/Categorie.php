@@ -18,7 +18,7 @@ class Categorie extends Ressource
         $categories = $dom_crawler->filter('#resulproduit > ul:not([style])')->each(function (DomCrawler $element) {
             $data = [];
             $data['id'] = str_replace('id : ', '', $element->filter(".vignette img")->first()->attr('title'));
-            $data['reference'] = $element->filter(".texte_noedit")->first()->text();
+            $data['reference'] = $element->filter(".texte_noedit")->first()->attr('title');
             $data['titre'] = $element->filter(".texte_edit")->first()->text();
 
             return $data;
