@@ -58,6 +58,7 @@ class Import extends Command
             $this->info('Récupération des réservations "non terminées"');
 
             if ($this->argument('action') === 'all') {
+
                 $reservations_reference = $reservation_data->nonTermine(Carbon::now()->addDay());
 
                 if (!count($reservations_reference)) {
@@ -66,7 +67,10 @@ class Import extends Command
                 }
 
                 $reservations_a_creer = $reservations_reference;
+
             } elseif ($this->argument('action') === 'new') {
+
+                // Tâche à faire régulièrement
                 $reservations_reference = $reservation_data->nonTermine();
 
                 if (!count($reservations_reference)) {
@@ -74,22 +78,30 @@ class Import extends Command
                     return CommandAlias::SUCCESS;
                 }
 
+                // Uniquement les nouvelles réservations pour ne pas faire trop de requête chez Rentîles ou de mise à jour
                 $references_exist = IpsumReservation::select('reference')->whereIn('reference', $reservations_reference)->get();
                 $reservations_a_creer = $reservations_reference->diff($references_exist->pluck('reference'));
+
+                // Permet de ne pas recharger à chaque fois les réservations skipés
+                $reservation_data->setCacheTime(60*60*24);
+
             } else {
                 $this->error('Argument action inconnu');
                 return CommandAlias::INVALID;
             }
 
-            $this->info($reservations_a_creer->count().' réservations à créer ou modifier');
+            $this->info($reservations_a_creer->count().' réservations à créer ou à modifier');
 
             $reservation_mapper = new ReservationMapper();
 
             foreach ($reservations_a_creer as $reference) {
-                $this->info('Création réservation '.$reference);
+                $this->info('Réservation '.$reference);
                 try {
+
+                    // Récupération du détail de la réservation sur Rentîles
                     $rentiles_reservation = $reservation_data->find($reference);
 
+                    // Skip des réservations importées manuellement avant le début de la mise en place de la synchronisation
                     if ($this->option('date_debut_synchronisation')) {
                         $date_debut_synchronisation = Carbon::createFromFormat('Y-m-d', $this->option('date_debut_synchronisation'));
                         if ($date_debut_synchronisation->greaterThan($rentiles_reservation->date)) {
@@ -97,8 +109,10 @@ class Import extends Command
                             continue;
                         }
                     }
+
                     $reservation_mapper->updateOrCreate($rentiles_reservation);
                     $this->info('Ok');
+
                 } catch (\Exception $exception) {
                     $errors->push($exception->getMessage());
                     $this->error($exception->getMessage());

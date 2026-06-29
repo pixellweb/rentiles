@@ -28,7 +28,7 @@ class Reservation extends Ressource
     public function nonTermine(CarbonInterface $debut = null, CarbonInterface $fin = null) : \Illuminate\Support\Collection
     {
         $debut = $debut ?? Carbon::now();
-        $fin = $fin ?? $debut->clone()->addMonths(6);
+        $fin = $fin ?? $debut->clone()->addMonths(7);
 
         $result = $this->crawler->get(config('rentiles.admin_path').'/planningbo_ajax.php', [
             'action' => 'gen_new_tab',
@@ -40,6 +40,11 @@ class Reservation extends Ressource
             'display_vehicule' => 0,
             'nocache' => time()
         ]);
+
+        if (empty($result)) {
+            // Par exemple le script plante chez Rentiles si la durée est trop longue
+            throw new RentilesException("La page du planning n'a pas été récupérée correctement.");
+        }
 
         // Récupération des réfèrences. Pas de possibilité de selectionner via css
         preg_match_all('/<p [^>]*background-color:#FF0F02;[^>]*>.*?planning=1&ref=([^"]*)">/s', $result, $output);
@@ -139,9 +144,11 @@ class Reservation extends Ressource
     }
 
 
-    public function create(CreateReservationData $reservation)
+    public function create(CreateReservationData $reservation, string $client_id): string
     {
-        $this->crawler->get('module-resa/module_resa.inc.php', [
+
+        // La création se déroule en deux temps via la session
+        $result = $this->crawler->get('module-resa/module_resa.inc.php', [
             'ajax' => 1,
             'action' => 'formresasubmit',
             'admin_tpl' => 'commandecreer',
@@ -153,10 +160,15 @@ class Reservation extends Ressource
             'date_f' => $reservation->date_retour->format('d/m/Y'),
             //'lieu_f' => 509,
             'heure_f' => $reservation->date_retour->format('H:i'),
-            'id_produit' => 45, // TODO
+            'id_produit' => $reservation->categorie_id,
             'formule' => 1
         ]);
 
+        $dom_crawler = new DomCrawler($result);
+        if (!$dom_crawler->filter('.confirm-prod')->count()) {
+            // Par exemple si date de départ et de retour identique, cela crée un bug php chez Rentiles.
+            throw new RentilesException("La pré-création de la réservation n'a pas été faite : $result");
+        }
 
         $result = $this->crawler->post(config('rentiles.admin_path').'/commande_creer.php', [
             'action' => 'ajouter',
@@ -167,22 +179,29 @@ class Reservation extends Ressource
             'fraisport' => null,
             'forfait_perso' => $reservation->montant,
             'acompte' => null,
-            'statut_acompte' => 2, // TODO
+            'statut_acompte' => 2,
             'livraison_infosup' => $reservation->infosup,
             'livraison_adresse' => $reservation->lieu_depart,
             'retour_adresse' => $reservation->lieu_retour,
             'client' => $reservation->nom,
-            'id_client' => '260313210511DOE', // TODO
+            'id_client' => $client_id,
             //'id_adrlivr' => 173,
             'prenom' => $reservation->prenom,
             'telfixe' => $reservation->telephone,
             'email1' => $reservation->email,
             'mdp' => null,
             'nom' => $reservation->nom,
-
         ]);
 
-        dd($result);
+        // Récupération de la réfèrence de la commande
+        $dom_crawler = new DomCrawler($result);
+        $reference = $dom_crawler->filter('input[name="ref"]')->first()->attr('value');
+
+        if (empty($reference)) {
+            throw new RentilesException("Réfèrence réservation créé non trouvée");
+        }
+
+        return $reference;
     }
 
 }

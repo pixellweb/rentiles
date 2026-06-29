@@ -10,6 +10,7 @@ use Illuminate\Container\EntryNotFoundException;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
 use PixellWeb\Rentiles\app\Ressources\Categorie;
+use PixellWeb\Rentiles\app\Ressources\Client;
 use PixellWeb\Rentiles\app\Ressources\Lieu;
 use PixellWeb\Rentiles\app\Ressources\Pays;
 use PixellWeb\Rentiles\app\Ressources\Reservation;
@@ -53,6 +54,23 @@ class Test extends Command
      */
     public function handle(): void
     {
+
+        $resa = \Ipsum\Reservation\app\Models\Reservation\Reservation::find(2889);
+
+        $client = new Client();
+        $client_id = $client->create($resa->nom, $resa->prenom, $resa->email);
+
+        $reservation_mapper = new ReservationMapper();
+        $reservation = new Reservation();
+        $reservation->create($reservation_mapper->get($resa), $client_id);
+
+        dd('stop');
+
+        $lieu = new Lieu(3600);
+        dd($lieu->all());
+        $categorie = new Categorie(3600);
+        dd($categorie->all());
+
         /*$reservation_data = ReservationData::validateAndCreate([
             'reference' => 'ggg',
             'categorie' => 'ggg',

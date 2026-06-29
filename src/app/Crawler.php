@@ -107,7 +107,7 @@ class Crawler
             'cookies' => $this->cookies_jar
         ];
 
-        if ($method == 'GET') {
+        if ($method === 'GET') {
             $headers['query'] = $parameters;
         } else {
             $headers['query'] = $query;
@@ -201,6 +201,12 @@ class Crawler
     public function patch(string $ressource_path, array $params = [], $query = null): string
     {
         return $this->request('PATCH', $ressource_path, $params, $query);
+    }
+
+
+    public function setCacheTime(?int $cache_time): void
+    {
+        $this->cache_time = $cache_time;
     }
 
 }

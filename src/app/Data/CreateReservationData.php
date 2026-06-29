@@ -18,7 +18,7 @@ class CreateReservationData extends Data
 {
 
     public function __construct(
-        public int $categorie,
+        public int $categorie_id,
         public Carbon $date_depart,
         public Carbon $date_retour,
         public ?string $infosup,
@@ -31,8 +31,8 @@ class CreateReservationData extends Data
         public ?int $montant,
 
         public Carbon $date,
-        public int $lieu_depart,
-        public int $lieu_retour,
+        public string $lieu_depart,
+        public string $lieu_retour,
 
 
 

@@ -20,6 +20,9 @@ abstract class Ressource
         $this->crawler = new Crawler($cache_time);
     }
 
-
+    public function setCacheTime(?int $cache_time): void
+    {
+        $this->crawler->setCacheTime($cache_time);
+    }
 
 }

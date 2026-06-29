@@ -4,8 +4,11 @@ namespace PixellWeb\Rentiles;
 
 
 use Ipsum\Reservation\app\Events\ReservationConfirmedEvent;
+use PixellWeb\Rentiles\app\Events\ReservationCreateFrontEvent;
 use PixellWeb\Rentiles\app\Listeners\SendReservation;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use PixellWeb\Rentiles\app\Listeners\SendReservationNotificationCatch;
+use PixellWeb\Rentiles\app\Notifications\RentilesImport;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -16,6 +19,9 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         ReservationConfirmedEvent::class => [
+            SendReservationNotificationCatch::class
+        ],
+        ReservationCreateFrontEvent::class => [
             SendReservation::class
         ],
     ];

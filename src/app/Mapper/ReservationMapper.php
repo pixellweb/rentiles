@@ -15,6 +15,7 @@ use PixellWeb\Rentiles\app\Data\CreateReservationData;
 use PixellWeb\Rentiles\app\Data\OptionData;
 use PixellWeb\Rentiles\app\Data\ReservationData;
 use PixellWeb\Rentiles\app\RentilesException;
+use PixellWeb\Rentiles\app\Ressources\Categorie as RentilesCategorie;
 
 class ReservationMapper
 {
@@ -31,6 +32,7 @@ class ReservationMapper
             });
 
         $this->lieux_mapping = Lieu::select(['id', 'custom_fields'])
+            ->orderBy('order')
             ->get()
             ->mapWithKeys(function ($item, $key) {
                 return [ $item->custom_fields->rentiles_code => $item->id];
@@ -87,6 +89,7 @@ class ReservationMapper
 
         $data = [
             'reference' => $reservation_data->reference,
+            'custom_fields' => ['rentiles_reference' => $reservation_data->reference],
             'etat_id' => Etat::VALIDEE_ID,
             'condition_paiement_id' => Condition::LIGNE_ID,
             'source_id' => config('rentiles.source_id'),
@@ -134,15 +137,22 @@ class ReservationMapper
         return $reservation_ipsum;
     }
 
-    public function get(IpsumReservation $ipsum_reservation): CreateReservationData
+    public function get(IpsumReservation $ipsum_reservation): ?CreateReservationData
     {
+        /*
+         * Pas besoin de faire remonter toutes les infos. L'idée principale est de juste bloquer le planning
+         * On ne fait remonter que le montant global. Pas les prestations
+         * Si pas de mapping de catégorie, ne rien faire, pas d'erreur
+         * Si le lieu n'a pas de mapping, on prend le premier.
+         */
+
         if (!$this->hasCategorieRentiles($ipsum_reservation->categorie_id)) {
-            throw new RentilesException('Erreur de mapping de la catégorie : '.$ipsum_reservation->categorie_id);
+            return null;
         }
 
 
         $data = [
-            'categorie' => $ipsum_reservation->categorie_id,
+            'categorie_id' => $this->getCategorieIdRentiles($ipsum_reservation->categorie_id),
             'date_depart' => $ipsum_reservation->debut_at,
             'date_retour' => $ipsum_reservation->fin_at,
             'infosup' => $ipsum_reservation->observation,
@@ -150,11 +160,12 @@ class ReservationMapper
             'prenom' => $ipsum_reservation->prenom,
             'telephone' => $ipsum_reservation->telephone,
             'email' => $ipsum_reservation->email,
-            'lieu_depart' => 11, //$ipsum_reservation->lieuDebut, //'ll',
-            'lieu_retour' => 11, //$ipsum_reservation->lieuFin, //'ll',
+            'lieu_depart' => $ipsum_reservation->lieuDebut->nom,
+            'lieu_retour' => $ipsum_reservation->lieuFin->nom,
             'montant' => $ipsum_reservation->total,
             'date' =>  $ipsum_reservation->created_at,
         ];
+
         return CreateReservationData::validateAndCreate($data);
     }
 
@@ -174,9 +185,27 @@ class ReservationMapper
         return $this->categories_mapping->contains($id);
     }
 
-    public function getCategorieRentiles(int $id): ?string
+    public function getCategorieIdRentiles(int $id): ?int
     {
-        return array_search($id, $this->categories_mapping->toArray()) ?? null;
+        $categorie_code = array_search($id, $this->categories_mapping->toArray()) ?? null;
+
+        if ($categorie_code === null) {
+            return null;
+        }
+
+        // Je n'ai pas trouvé de solution pour créer une réservation sur rentiles avec la référence
+        // Donc nous sommes obligé de faire la correspondance rentiles reference -> id
+        $rentiles_categorie = new RentilesCategorie(60 * 60 * 24 * 365);
+        $categorie = $rentiles_categorie->all()->toCollection()->firstWhere('reference', $categorie_code);
+        if ($categorie === null) {
+            // on fait une vérification à nouveau sans le cache
+            $rentiles_categorie = new RentilesCategorie(0);
+            $categorie = $rentiles_categorie->all()->toCollection()->firstWhere('reference', $categorie_code);
+            if ($categorie === null) {
+                throw new RentilesException('Erreur de mapping de la catégorie : '.$categorie_code);
+            }
+        }
+        return $categorie->id;
     }
 
     public function hasLieuIpsum(string $nom): bool
@@ -188,6 +217,12 @@ class ReservationMapper
     {
         return $this->lieux_mapping[$nom] ?? $this->lieux_mapping->first();
     }
+
+    /*public function getLieuRentiles(int $id): int
+    {
+        // On prend le premier si pas de mapping
+        return array_search($id, $this->lieux_mapping->toArray()) ?? $this->lieux_mapping->first();
+    }*/
 
     public function hasPrestationIpsum(string $nom): bool
     {
