@@ -15,7 +15,7 @@ class Client extends Ressource
      * @throws InvalidArgumentException
      * @throws \JsonException
      */
-    public function create(string $nom, string $prenom, string $email): string
+    public function create(string $nom, string $email, string $prenom = null): string
     {
         $result = $this->crawler->get(config('rentiles.admin_path').'/ajoutcli.php', [
             'action' => 'ajouter',

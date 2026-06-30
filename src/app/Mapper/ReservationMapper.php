@@ -152,6 +152,7 @@ class ReservationMapper
 
 
         $data = [
+            'reference' => $ipsum_reservation->custom_fields->rentiles_reference,
             'categorie_id' => $this->getCategorieIdRentiles($ipsum_reservation->categorie_id),
             'date_depart' => $ipsum_reservation->debut_at,
             'date_retour' => $ipsum_reservation->fin_at,

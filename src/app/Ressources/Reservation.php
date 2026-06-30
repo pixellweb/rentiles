@@ -6,7 +6,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Validation\ValidationException;
+use Ipsum\Reservation\app\Models\Reservation\Etat;
 use PixellWeb\Rentiles\app\Data\CreateReservationData;
+use PixellWeb\Rentiles\app\Enum\Statut;
 use PixellWeb\Rentiles\app\RentilesException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler as DomCrawler;
@@ -74,7 +76,7 @@ class Reservation extends Ressource
         $categorie['titre'] = $dom_crawler->filter('input[name="editcmd_vehicule[titre]"]')->first()->attr('value');
         $data['categorie'] = $categorie;
 
-        $data['statut'] = $dom_crawler->filter('#statutch option[selected]')->first()->text();
+        $data['statut'] = (int) $dom_crawler->filter('#statutch option[selected]')->first()->attr('value');
 
         $i = 1;
         $data['options'] = [];
@@ -134,6 +136,7 @@ class Reservation extends Ressource
 
         $data = array_map(function($item) { return $item !== '' ? $item : null; }, $data);
 
+
         try {
             ReservationData::validate($data);
         } catch (ValidationException $exception) {
@@ -173,7 +176,7 @@ class Reservation extends Ressource
         $result = $this->crawler->post(config('rentiles.admin_path').'/commande_creer.php', [
             'action' => 'ajouter',
             'type_paiement' => 1,
-            'statut' => 2, // Payé
+            'statut' => Statut::Paye,
             'delaidevis' => 4,
             'type_livraison' => 2,
             'fraisport' => null,
@@ -202,6 +205,116 @@ class Reservation extends Ressource
         }
 
         return $reference;
+    }
+
+
+    public function update(CreateReservationData $reservation, int $etat)
+    {
+
+        // Récupération des informations rentîles de la commande pour ne pas tou écraser
+        $result = $this->crawler->get(config('rentiles.admin_path').'/commande_details.php', [
+            'ref' => $reservation->reference
+        ]);
+
+        // Récupération des inputs
+        $dom_crawler = new DomCrawler($result);
+        $inputs = $dom_crawler->filter('.editcmd')->each(function (DomCrawler $element) {
+
+            if ($element->nodeName() === 'select') {
+                $option = $element->filter('option[selected]')->first();
+                $value = $option->count() ? $option->attr('value') : null;
+            } else {
+                $value = $element->attr('value');
+            }
+
+            return [$element->attr('name') => $value];
+        });
+
+        $datas = [];
+        foreach ($inputs as $input) {
+            foreach ($input as $key => $value) {
+                $datas[$key] = $value;
+            }
+        }
+        // Add infos complémentaires
+        $datas['cmd_id'] = $dom_crawler->filter('input[name="cmd_id"]')->first()->attr('value');
+        $datas['cmd_ref'] = $reservation->reference;
+        $datas['action'] = 'majcmd';
+        $datas['srr'] = 1;
+
+        //$datas['id_produit'] = $dom_crawler->filter('input[name="id_produit"]')->first()->attr('value');
+        $datas['produit_img'] = $dom_crawler->filter('input[name="edit_img_produit"]')->first()->attr('value');
+        $datas['url_speedyrent'] = config('rentiles.domain').'/'.config('rentiles.path');
+
+
+        // Modification des données. Un minimum de donnée pour juste bloquer les disponibilités
+        $datas['id_produit'] = $reservation->categorie_id;
+        $datas['editcmd_dated'] = $reservation->date_depart->format('d/m/Y');
+        $datas['editcmd_heured'] = $reservation->date_depart->format('H:i');
+        $datas['editcmd_lieud'] = $reservation->lieu_depart;
+        $datas['editcmd_datef'] = $reservation->date_retour->format('d/m/Y');
+        $datas['editcmd_heuref'] = $reservation->date_retour->format('H:i');
+        $datas['editcmd_lieuf'] = $reservation->lieu_retour;
+        $datas['editcmd_infosup'] = $reservation->infosup;
+
+
+        $this->crawler->rentiles('POST', '/client/plugins/resas/ajax/majcmd.php', $datas);
+
+        $statut = (int) $dom_crawler->filter('#statutch option[selected]')->first()->attr('value');
+
+        // On change le statut que pour confirmer une resa
+        $resa_confirme = [Statut::Paye->value, Statut::Acompte->value, Statut::PaiementAgence->value, Statut::Differe->value, Statut::AttentePaiement->value];
+        if ((in_array($statut, $resa_confirme, true) and $etat !== Etat::VALIDEE_ID)
+        or (!in_array($statut, $resa_confirme, true) and $etat === Etat::VALIDEE_ID)) {
+            $this->changeStatut($reservation->reference, $etat);
+        }
+    }
+
+    public function changeStatut(string $reference, int $etat)
+    {
+
+        // À noter que l'on passe toutes les commandes en payé partielement. À améliorer ?
+        $statut = in_array($etat, [Etat::NON_VALIDEE_ID, Etat::ANNULEE_ID], true) ? Statut::Annule : Statut::Acompte;
+
+        $result = $this->crawler->post(config('rentiles.admin_path').'/commande_details.php', [
+            'ref' => $reference,
+            'statutch' => $statut->value
+        ]);
+
+        // Récupération de la réfèrence de la commande
+        $dom_crawler = new DomCrawler($result);
+        $reference = $dom_crawler->filter('input[name="ref"]')->first()->attr('value');
+
+        if (empty($reference)) {
+            throw new RentilesException("Réfèrence réservation modifiée non trouvée");
+        }
+
+    }
+
+    public function delete(string $reference)
+    {
+
+        /*
+        // Posibilité ci-dessous, mais cela annule la commande
+        $result = $this->crawler->get(config('rentiles.admin_path').'/commande.php', [
+            'action' => 'supprimer',
+            'id' => (int) substr($reference, 1)
+        ]);*/
+
+
+        $result = $this->crawler->post(config('rentiles.admin_path').'/commande_details.php', [
+            'ref' => $reference,
+            'statutch' => Statut::Annule->value
+        ]);
+
+        // Récupération de la réfèrence de la commande
+        $dom_crawler = new DomCrawler($result);
+        $reference = $dom_crawler->filter('input[name="ref"]')->first()->attr('value');
+
+        if (empty($reference)) {
+            throw new RentilesException("Réfèrence réservation modifiée non trouvée");
+        }
+
     }
 
 }

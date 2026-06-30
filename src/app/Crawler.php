@@ -209,4 +209,32 @@ class Crawler
         $this->cache_time = $cache_time;
     }
 
+
+
+    public function rentiles(string $method, string $ressource_path, array $parameters = [], $query = null): string
+    {
+        $client = new Client(['base_uri' => 'https://www.rentiles.fr']);
+
+        if ($method === 'GET') {
+            $headers['query'] = $parameters;
+        } else {
+            $headers['query'] = $query;
+            $headers['form_params'] = $parameters;
+        }
+
+        try {
+
+            $response = $client->request($method, $ressource_path, $headers);
+
+            if ($response->getStatusCode() != 200) {
+                throw new RentilesException("Request::".$method." : code http error (" . $response->getStatusCode() . ")  " . $ressource_path, $response->getStatusCode());
+            }
+
+            return $response->getBody()->getContents();
+
+        } catch (RequestException $exception) {
+            throw new RentilesException("Request::".$method." : " . $exception->getMessage() . " " . $exception->getResponse()->getBody()->getContents() . ' '.print_r($parameters,true), $exception->getCode(), $exception);
+        }
+    }
+
 }

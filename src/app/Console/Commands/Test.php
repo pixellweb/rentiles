@@ -58,7 +58,7 @@ class Test extends Command
         $resa = \Ipsum\Reservation\app\Models\Reservation\Reservation::find(2889);
 
         $client = new Client();
-        $client_id = $client->create($resa->nom, $resa->prenom, $resa->email);
+        $client_id = $client->create($resa->nom, $resa->email, $resa->prenom);
 
         $reservation_mapper = new ReservationMapper();
         $reservation = new Reservation();

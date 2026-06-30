@@ -4,6 +4,7 @@ namespace PixellWeb\Rentiles\app\Listeners;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Ipsum\Reservation\app\Events\ReservationUpdatedEvent;
 use PixellWeb\Rentiles\app\Events\ReservationCreateFrontEvent;
 use PixellWeb\Rentiles\app\Mapper\ReservationMapper;
 use PixellWeb\Rentiles\app\Ressources\Client;
@@ -24,8 +25,12 @@ class SendReservation
 
     public function handle(ReservationCreateFrontEvent $event)
     {
+        if ($event->reservation->custom_fields->rentiles_reference) {
+            return null;
+        }
+
         $client = new Client();
-        $client_id = $client->create($event->reservation->nom, $event->reservation->prenom, $event->reservation->email);
+        $client_id = $client->create($event->reservation->nom, $event->reservation->email, $event->reservation->prenom);
 
         $reservation_mapper = new ReservationMapper();
         $reservation = new Reservation();
