@@ -103,7 +103,7 @@ class Import extends Command
 
                     // Skip des réservations importées manuellement avant le début de la mise en place de la synchronisation
                     if ($this->option('date_debut_synchronisation')) {
-                        $date_debut_synchronisation = Carbon::createFromFormat('Y-m-d', $this->option('date_debut_synchronisation'));
+                        $date_debut_synchronisation = Carbon::createFromFormat('Y-m-d H', $this->option('date_debut_synchronisation'));
                         if ($date_debut_synchronisation->greaterThan($rentiles_reservation->date)) {
                             $this->warn('Réservation effectuée avant le début de la synchronisation');
                             continue;

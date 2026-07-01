@@ -18,7 +18,7 @@ Seules les données des réservations permettant de gérer les disponibilités s
 3) Renseigner les custom_fields
 4) Ajouter les commandes dans le Kernel.
 
-        $date_debut_synchronisation = '2026-06-26';
+        $date_debut_synchronisation = '2026-06-26 11';
         $schedule->command('rentiles:import', [
             '--date_debut_synchronisation' => $date_debut_synchronisation
         ])->daily();
