@@ -176,7 +176,7 @@ class Reservation extends Ressource
         $result = $this->crawler->post(config('rentiles.admin_path').'/commande_creer.php', [
             'action' => 'ajouter',
             'type_paiement' => 1,
-            'statut' => Statut::Paye,
+            'statut' => Statut::Paye->value,
             'delaidevis' => 4,
             'type_livraison' => 2,
             'fraisport' => null,
@@ -211,7 +211,7 @@ class Reservation extends Ressource
     public function update(CreateReservationData $reservation, int $etat)
     {
 
-        // Récupération des informations rentîles de la commande pour ne pas tou écraser
+        // Récupération des informations Rentîles de la commande pour ne pas tou écraser
         $result = $this->crawler->get(config('rentiles.admin_path').'/commande_details.php', [
             'ref' => $reservation->reference
         ]);
@@ -260,7 +260,8 @@ class Reservation extends Ressource
 
         $this->crawler->rentiles('POST', '/client/plugins/resas/ajax/majcmd.php', $datas);
 
-        $statut = (int) $dom_crawler->filter('#statutch option[selected]')->first()->attr('value');
+        $dom_statut = $dom_crawler->filter('#statutch option[selected]')->first();
+        $statut = $dom_statut->count() ? (int) $dom_statut->attr('value') : null;
 
         // On change le statut que pour confirmer une resa
         $resa_confirme = [Statut::Paye->value, Statut::Acompte->value, Statut::PaiementAgence->value, Statut::Differe->value, Statut::AttentePaiement->value];
