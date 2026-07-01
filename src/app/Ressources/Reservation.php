@@ -299,7 +299,7 @@ class Reservation extends Ressource
         // Posibilité ci-dessous, mais cela annule la commande
         $result = $this->crawler->get(config('rentiles.admin_path').'/commande.php', [
             'action' => 'supprimer',
-            'id' => (int) substr($reference, 1)
+            'id' => (int) substr($reference, 1) // Attention ne fonctionne pas pour les résa Rentiles commencant par R
         ]);*/
 
 

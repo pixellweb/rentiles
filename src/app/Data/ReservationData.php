@@ -63,7 +63,25 @@ class ReservationData extends Data
         public ?string $adresse_sur_place,
 
     ) {
-        $this->montant_paye = round_prix($this->montant * 30 / 100);
+        $this->montant_paye = $this->calculAcompte($this->montant);
+    }
+
+    protected function calculAcompte(int $montant): int
+    {
+        // Obliger de calculer l'acompte, car il n'est visible que sur les pdf ou sur l'accueil
+        // Pas terrible, car les régles peuvent changer. Aussi, cela n'est valable que sur les résas Rentïles en R.
+
+        // Régles de calcul
+        // moins ou égale à 150€ : paiement de la totalité en ligne par CB
+        // plus de 150€ : acompte de 100€ par tranche de 500€
+        if ($montant > 150) {
+            $tranches = ceil($montant / 500);
+            $montant_paye = $tranches * 100;
+        } else {
+            $montant_paye = $montant;
+        }
+
+        return $montant_paye;
     }
 }
 
