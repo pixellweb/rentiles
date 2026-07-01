@@ -3,6 +3,7 @@
 namespace PixellWeb\Rentiles;
 
 use App\Http\Middleware\TrimStrings;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use PixellWeb\Rentiles\app\Console\Commands\Import;
 use PixellWeb\Rentiles\app\Console\Commands\Test;
@@ -33,6 +34,10 @@ class RentilesServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->addCustomConfigurationValues();
+
+        Route::middleware(['web'])
+            ->prefix(config('ipsum.admin.route_prefix'))
+            ->group(__DIR__.'/routes/admin.php');
     }
 
     public function addCustomConfigurationValues()

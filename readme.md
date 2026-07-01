@@ -15,7 +15,8 @@ Seules les données des réservations permettant de gérer les disponibilités s
 ## Mise en place
 1) Ajouter le fichier de config
 2) Ajouter des custom_fields sur les catégories, les lieux, les commandes et les prestations
-3) Ajouter les commandes dans le Kernel.
+3) Renseigner les custom_fields
+4) Ajouter les commandes dans le Kernel.
 
         $date_debut_synchronisation = '2026-06-26';
         $schedule->command('rentiles:import', [
@@ -24,6 +25,8 @@ Seules les données des réservations permettant de gérer les disponibilités s
         $schedule->command('rentiles:import new', [
             '--date_debut_synchronisation' => $date_debut_synchronisation,
         ])->hourly();
+5) Ajouter l'event ReservationCreateFrontEvent dans l'ipn
+6) Ajouter la vue _actions.blade.php dans vendor/IpsumReservation/reservation
 
 
 
