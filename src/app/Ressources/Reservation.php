@@ -149,8 +149,10 @@ class Reservation extends Ressource
 
     public function create(CreateReservationData $reservation, string $client_id): string
     {
+        // La création se déroule en trois temps via la session
+        $this->crawler->get(config('rentiles.admin_path').'/commande_creer.php');
 
-        // La création se déroule en deux temps via la session
+
         $result = $this->crawler->get('module-resa/module_resa.inc.php', [
             'ajax' => 1,
             'action' => 'formresasubmit',
